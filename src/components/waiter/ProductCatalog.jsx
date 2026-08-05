@@ -13,7 +13,6 @@ export const ProductCatalog = ({ selectedCategory, setSelectedCategory, onSelect
       case 'Utensils': return <Utensils className="w-4 h-4" />;
       case 'Coffee': return <Coffee className="w-4 h-4" />;
       case 'Beer': return <Beer className="w-4 h-4" />;
-      case 'Wine': return <Wine className="w-4 h-4" />;
       default: return <Utensils className="w-4 h-4" />;
     }
   };
