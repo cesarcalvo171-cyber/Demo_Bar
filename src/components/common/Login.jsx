@@ -53,7 +53,7 @@ export const Login = () => {
       {/* Card principal del login */}
       <div className="bg-slate-950 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
         {/* Header del login */}
-        <div className="pt-10 pb-6 text-center px-8 ">
+        <div className="pt-10 pb-6 text-center px-8  ">
           <div className="w-14 h-14 bg-yellow-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-500">
             <MdRestaurant className="w-8 h-8" />
           </div>
@@ -68,7 +68,7 @@ export const Login = () => {
             : "Ingresa tus credenciales de acceso."}
         </p>
          {/* Contenido del step */}
-      <div className="px-8 pb-10">
+      <div className="px-8 pb-10 mt-4">
         {step === 1 ? (
           <div className=" space-y-3 ">
             <button
@@ -109,9 +109,7 @@ export const Login = () => {
             )}
             {loginType === "mesero" ? (
               <div className="pt-2">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 text-center">
-                  PIN de Seguridad (6 dígitos)
-                </label>
+                
                 <input
                   type="password"
                   required
@@ -122,11 +120,14 @@ export const Login = () => {
                   maxLength={6}
                   autoFocus
                 />
+                <label className="block text-[10px] mt-3.5 font-bold text-red-400 uppercase tracking-wider mb-3 text-center">
+                  PIN de Seguridad (6 dígitos)
+                </label>
               </div>
             ) : (
               <div className="space-y-4 pt-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Usuario</label>
+                  <label className="block text-xs font-bold text-yellow-500 mb-2">Usuario</label>
                   <input
                     type="text"
                     required
@@ -136,7 +137,7 @@ export const Login = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Contraseña</label>
+                  <label className="block text-xs font-bold text-yellow-500 mb-2">Contraseña</label>
                   <input
                     type="password"
                     required
