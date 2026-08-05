@@ -49,54 +49,53 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sans ">
       {/* Card principal del login */}
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div className="bg-slate-950 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
         {/* Header del login */}
-        <div className="pt-10 pb-6 text-center px-8">
-          <div className="w-14 h-14 bg-yellow-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-500">
+        <div className="pt-10 pb-6 text-center px-8 ">
+          <div className="w-14 h-14 bg-yellow-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-500">
             <MdRestaurant className="w-8 h-8" />
           </div>
         </div>
         {/*Cabezera del step */}
-        <h1 className="text-center text-2xl font-bold text-slate-800 m-0">
+        <h1 className="text-center text-2xl font-bold text-yellow-500 m-0">
           {step === 1 ? "Selecciona tu perfil" : "Iniciar Sesión"}
         </h1>
-        <p className="text-sm text-slate-500 mt-2">
+        <p className="text-sm text-yellow-500 mt-2 text-center">
           {step === 1
             ? "Elige cómo deseas ingresar a la plataforma hoy."
             : "Ingresa tus credenciales de acceso."}
         </p>
-      </div>
-      {/* Contenido del step */}
+         {/* Contenido del step */}
       <div className="px-8 pb-10">
         {step === 1 ? (
-          <div className="space-y-3">
+          <div className=" space-y-3 ">
             <button
               type="button"
               onClick={() => handleSelectprofile("admin")}
-              className="w-full text-left p-4 rounded-2xl border-2 border-transparent bg-slate-950 hover:bg-slate-700 hover:border-slate-200 transition-all flex items-center gap-4 group cursor-pointer"
+              className="w-full mt-4  p-4 rounded-2xl text-center border-2 border-transparent bg-white hover:bg-yellow-100 shadow-2xl transition-all  gap-4 group cursor-pointer"
             >
               <div>
-                <h3 className="font-bold text-yellow-500 text-sm">Administrador</h3>
+                <h3 className="font-bold text-slate-950 text-sm ">Administrador</h3>
               </div>
             </button>
             <button
               type="button"
               onClick={() => handleSelectprofile("cajero")}
-              className="w-full text-left p-4 rounded-2xl border-2 border-transparent bg-slate-950 hover:bg-slate-700 hover:border-slate-200 transition-all flex items-center gap-4 group cursor-pointer"
+              className="w-full text-center p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all  group cursor-pointer"
             >
               <div>
-                <h3 className="font-bold text-yellow-500 text-sm">Cajero</h3>
+                <h3 className="font-bold text-slate-950 text-sm text-center">Cajero</h3>
               </div>
             </button>
             <button
               type="button"
               onClick={() => handleSelectprofile("mesero")}
-              className="w-full text-left p-4 rounded-2xl border-2 border-transparent bg-slate-950 hover:bg-slate-700 hover:border-slate-200 transition-all flex items-center gap-4 group cursor-pointer"
+              className="w-full  p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all text-center group cursor-pointer"
             >
               <div>
-                <h3 className="font-bold text-yellow-500 text-sm">Mesero</h3>
+                <h3 className="font-bold text-slate-950 text-sm ">Mesero</h3>
               </div>
             </button>
           </div>
@@ -119,7 +118,7 @@ export const Login = () => {
                   placeholder="••••••"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full text-center tracking-[1em] text-3xl py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-800 focus:outline-none focus:border-blue-500 transition-colors font-mono"
+                  className="w-full text-center tracking-[1em] text-3xl py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-800 focus:outline-none focus:border-yellow-500/30 transition-colors font-mono"
                   maxLength={6}
                   autoFocus
                 />
@@ -133,7 +132,7 @@ export const Login = () => {
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-purple-500 transition-colors font-medium"
+                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-yellow-500/30 transition-colors font-medium"
                   />
                 </div>
                 <div>
@@ -143,7 +142,7 @@ export const Login = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-purple-500 transition-colors font-mono"
+                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-nonefocus:border-yellow-500/30 transition-colors font-mono"
                   />
                 </div>
               </div>
@@ -166,6 +165,10 @@ export const Login = () => {
           </form>
         )}
       </div>
+
+      </div>
+      
+     
     </div>
   );
 };
