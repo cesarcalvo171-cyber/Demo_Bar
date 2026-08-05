@@ -1,6 +1,6 @@
 import React from 'react';
 import { useBar } from '../../context/BarContext';
-import { Utensils, Coffee, Beer, Wine, Plus, Check } from 'lucide-react';
+import { Utensils, Coffee, Beer, Wine, GlassWater, Plus, Check } from 'lucide-react';
 import { CATEGORIES } from '../../mock/initialData';
 
 export const ProductCatalog = ({ selectedCategory, setSelectedCategory, onSelectProduct, currentOrderItems }) => {
@@ -13,6 +13,8 @@ export const ProductCatalog = ({ selectedCategory, setSelectedCategory, onSelect
       case 'Utensils': return <Utensils className="w-4 h-4" />;
       case 'Coffee': return <Coffee className="w-4 h-4" />;
       case 'Beer': return <Beer className="w-4 h-4" />;
+      case 'GlassWater': return <GlassWater className="w-4 h-4" />;
+      case 'Wine': return <Wine className="w-4 h-4" />;
       default: return <Utensils className="w-4 h-4" />;
     }
   };

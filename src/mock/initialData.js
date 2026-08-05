@@ -1,7 +1,7 @@
 export const CATEGORIES = [
  
   { id: 'cervezas', name: 'Cervezas', icon: 'Beer' },
-  {/*{ id: 'cocteles', name: 'Cócteles', icon: 'Wine' }*/},
+  // { id: 'cocteles', name: 'Cócteles', icon: 'Wine' },
   { id: 'licores', name: 'Licores', icon: 'GlassWater' },
   { id: 'comida', name: 'Comidas', icon: 'Utensils' },
 ];
