@@ -64,7 +64,7 @@ export const Login = () => {
         </h1>
         <p className="text-sm text-yellow-500 mt-2 text-center">
           {step === 1
-            ? "Elige cómo deseas ingresar a la plataforma hoy."
+            ? "Elige según tu rol "
             : "Ingresa tus credenciales de acceso."}
         </p>
          {/* Contenido del step */}
@@ -83,7 +83,7 @@ export const Login = () => {
             <button
               type="button"
               onClick={() => handleSelectprofile("cajero")}
-              className="w-full text-center p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all  group cursor-pointer"
+              className="w-full text-center mt-2 p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all  group cursor-pointer"
             >
               <div>
                 <h3 className="font-bold text-slate-950 text-sm text-center">Cajero</h3>
@@ -92,7 +92,7 @@ export const Login = () => {
             <button
               type="button"
               onClick={() => handleSelectprofile("mesero")}
-              className="w-full  p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all text-center group cursor-pointer"
+              className="w-full  p-4 rounded-2xl mt-2 border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all text-center group cursor-pointer"
             >
               <div>
                 <h3 className="font-bold text-slate-950 text-sm ">Mesero</h3>
