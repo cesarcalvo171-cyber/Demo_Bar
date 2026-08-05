@@ -81,7 +81,7 @@ export const BarProvider = ({ children }) => {
   }, []);
 
   // Actualizar pedido de una mesa
-  const updateTableOrder = (tableId, items) => {
+  const updateTableOrder = (tableId, items, customerName = '') => {
     setTables(prev =>
       prev.map(table => {
         if (table.id === tableId) {
@@ -92,6 +92,7 @@ export const BarProvider = ({ children }) => {
           return {
             ...table,
             items,
+            customerName: customerName.trim(),
             assignedWaiterId,
             assignedWaiterName,
             status: isOccupied ? 'ocupada' : 'libre',
@@ -281,6 +282,32 @@ export const BarProvider = ({ children }) => {
     return { success: true, user: sessionData };
   };
 
+  const loginMesero = (pin) => {
+    const targetPass = pin.trim();
+    // Busca un mesero activo que tenga este PIN como password
+    const foundUser = users.find(u => u.role === 'mesero' && (u.password || '1234') === targetPass);
+
+    if (!foundUser) {
+      return { success: false, message: 'PIN incorrecto o mesero no encontrado.' };
+    }
+    if (foundUser.active === false) {
+      return { success: false, message: 'Este usuario se encuentra inactivo.' };
+    }
+
+    const sessionData = {
+      id: foundUser.id,
+      name: foundUser.name,
+      username: foundUser.username,
+      role: foundUser.role
+    };
+
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+    setCurrentUser(sessionData);
+    setCurrentRole(foundUser.role);
+
+    return { success: true, user: sessionData };
+  };
+
   const logout = () => {
     sessionStorage.removeItem(SESSION_KEY);
     setCurrentUser(null);
@@ -328,6 +355,7 @@ export const BarProvider = ({ children }) => {
         updateUser,
         deleteUser,
         login,
+        loginMesero,
         logout
       }}
     >

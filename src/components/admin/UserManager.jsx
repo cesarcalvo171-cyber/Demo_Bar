@@ -28,12 +28,21 @@ export const UserManager = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.username.trim()) return;
+    if (!formData.name.trim()) return;
+
+    let finalData = { ...formData };
+    if (finalData.role === 'mesero') {
+       if (!finalData.username.trim()) {
+         finalData.username = `mesero_${Date.now().toString().slice(-4)}`;
+       }
+    } else {
+       if (!finalData.username.trim()) return;
+    }
 
     if (editingUser) {
-      updateUser({ ...editingUser, ...formData });
+      updateUser({ ...editingUser, ...finalData });
     } else {
-      addUser(formData);
+      addUser(finalData);
     }
     setShowModal(false);
   };
@@ -155,24 +164,28 @@ export const UserManager = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de Usuario (Login):</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. cmartinez"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"
-                />
-              </div>
+              {formData.role !== 'mesero' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de Usuario (Login):</label>
+                  <input
+                    type="text"
+                    required={formData.role !== 'mesero'}
+                    placeholder="Ej. cmartinez"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"
+                  />
+                </div>
+              )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Contraseña de Acceso:</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  {formData.role === 'mesero' ? 'PIN de Acceso (Numérico):' : 'Contraseña de Acceso:'}
+                </label>
                 <input
-                  type="password"
+                  type={formData.role === 'mesero' ? 'text' : 'password'}
                   required
-                  placeholder="Ej. 1234"
+                  placeholder={formData.role === 'mesero' ? 'Ej. 123456' : 'Ej. 1234'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"
