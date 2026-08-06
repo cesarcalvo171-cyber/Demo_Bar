@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useBar } from "../../context/BarContext";
 import { ProductCatalog } from "./ProductCatalog";
 import { InvoicePreview } from "./InvoicePreview";
+import { ComandaPreview } from "./ComandaPreview";
+import { MdOutlineSearch } from "react-icons/md";
 import {
   Trash2,
   Plus,
@@ -19,14 +21,19 @@ export const OrderModal = ({ table, onClose }) => {
     updateTableOrder,
     sendOrderToCashier,
     cancelTableOrder,
+    clearUnprintedItems,
     currentUser,
+    exchangeRate
   } = useBar();
   const [selectedCategory, setSelectedCategory] = useState("comida");
   //Cconstante que contiene los items del pedido de la mesa, si no tiene items se inicializa como un array vacío
   const items = table.items || [];
+  const unprintedItems = table.unprintedItems || [];
   const [customerName, setCustomerName] = useState(table.customerName || "");
   const [showPreview, setShowPreview] = useState(false);
+  const [showComanda, setShowComanda] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [search, SetSearch] = useState("");
 
   // Validar si el usuario activo es el mesero que abrió la mesa o si es Administrador
   const isOwnerOrAdmin =
@@ -34,47 +41,71 @@ export const OrderModal = ({ table, onClose }) => {
     !table.assignedWaiterId ||
     table.assignedWaiterId === currentUser?.id;
 
-
-
-   // Agregar producto y guardar en tiempo real
+  // Agregar producto y guardar en tiempo real
+  // Agregar producto y guardar en tiempo real
   const handleAddProduct = (product) => {
     if (!isOwnerOrAdmin) {
-      setErrorMsg(`Mesa atendida por ${table.assignedWaiterName}. No tienes permisos.`);
+      setErrorMsg(
+        `Mesa atendida por ${table.assignedWaiterName}. No tienes permisos.`,
+      );
       setTimeout(() => setErrorMsg(""), 4000);
       return;
     }
-    
+
     let newItems = [...items];
-    const existingIndex = newItems.findIndex((i) => i.product.id === product.id);
+    const existingIndex = newItems.findIndex(
+      (i) => i.product.id === product.id,
+    );
+
     if (existingIndex >= 0) {
-      if (product.stock !== null && newItems[existingIndex].quantity >= product.stock) {
+      if (
+        product.stock !== null &&
+        newItems[existingIndex].quantity >= product.stock
+      ) {
         setErrorMsg(`Stock máximo alcanzado para ${product.name}`);
         setTimeout(() => setErrorMsg(""), 3000);
         return;
       }
-      newItems[existingIndex].quantity += 1;
+      newItems[existingIndex] = { ...newItems[existingIndex], quantity: newItems[existingIndex].quantity + 1 };
     } else {
       newItems.push({ product, quantity: 1 });
     }
 
-    
+    // Lógica para la Comanda (elementos sin imprimir)
+    let newUnprinted = [...unprintedItems];
+    const existingUnprinted = newUnprinted.findIndex((i) => i.product.id === product.id);
+    if (existingUnprinted >= 0) {
+      newUnprinted[existingUnprinted] = { ...newUnprinted[existingUnprinted], quantity: newUnprinted[existingUnprinted].quantity + 1 };
+    } else {
+      newUnprinted.push({ product, quantity: 1 });
+    }
+
     // Guardar directo en la base de datos global
-    updateTableOrder(table.id, newItems, customerName);
+    updateTableOrder(table.id, newItems, customerName, newUnprinted);
   };
-
-
 
   // Reducir o eliminar cantidad
   const handleQuantity = (productId, delta) => {
-   let newItems = items.map((i)=>{
-    if (i.product.id === productId) { 
-      return { ...i, quantity: i.quantity + delta };
-    }
-    return i;
-   }).filter((i) => i.quantity > 0);
+    let newItems = items
+      .map((i) => {
+        if (i.product.id === productId) {
+          return { ...i, quantity: i.quantity + delta };
+        }
+        return i;
+      })
+      .filter((i) => i.quantity > 0);
+
+    let newUnprinted = unprintedItems
+      .map((i) => {
+        if (i.product.id === productId) {
+          return { ...i, quantity: Math.max(0, i.quantity + delta) };
+        }
+        return i;
+      })
+      .filter((i) => i.quantity > 0);
 
     // Guardar directo en la base de datos global
-    updateTableOrder(table.id, newItems, customerName);
+    updateTableOrder(table.id, newItems, customerName, newUnprinted);
   };
 
   const calculateTotal = () => {
@@ -90,7 +121,7 @@ export const OrderModal = ({ table, onClose }) => {
     onClose();
   };
 
-  // Enviar a caja 
+  // Enviar a caja
   const handleSendToCashierSubmit = (e) => {
     if (e) e.preventDefault();
     if (!customerName.trim()) {
@@ -102,10 +133,15 @@ export const OrderModal = ({ table, onClose }) => {
     onClose();
   };
 
-  // Cerrar todo una vez el mesero terminó de imprimir
+  // Cerrar todo una vez el mesero terminó de imprimir la factura
   const handleCloseAfterPrint = () => {
     setShowPreview(false);
     onClose();
+  };
+
+  const handleCloseComanda = () => {
+    setShowComanda(false);
+    clearUnprintedItems(table.id);
   };
 
   const handleClearTable = () => {
@@ -114,7 +150,9 @@ export const OrderModal = ({ table, onClose }) => {
       onClose();
     }
   };
-
+ 
+  
+  
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[500px]">
       {/* Columna Izquierda: Catálogo de Productos */}
@@ -125,11 +163,23 @@ export const OrderModal = ({ table, onClose }) => {
             <span>{errorMsg}</span>
           </div>
         )}
+        <div className="relative mb-4">
+          <MdOutlineSearch className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+
+          <input
+            type="text"
+            placeholder="Buscar producto..."
+            value={search}
+            onChange={(e) => SetSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white"
+          />
+        </div>
         <ProductCatalog
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           onSelectProduct={handleAddProduct}
           currentOrderItems={items}
+          search={search}
         />
       </div>
 
@@ -177,7 +227,7 @@ export const OrderModal = ({ table, onClose }) => {
                 type="text"
                 placeholder="Referencia o Cliente (Ej. Juan Pérez)"
                 value={customerName}
-               onBlur={() =>updateTableOrder(table.id, items, customerName)} //guardamos datos al terminar de escribir
+                onBlur={() => updateTableOrder(table.id, items, customerName)} //guardamos datos al terminar de escribir
                 onChange={(e) => setCustomerName(e.target.value)}
                 disabled={!isOwnerOrAdmin}
                 className="w-full pl-8 pr-3 py-1.5 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors disabled:opacity-50"
@@ -271,7 +321,7 @@ export const OrderModal = ({ table, onClose }) => {
               </span>
             </div>
             <div className="text-slate-400 text-xs font-bold mt-0.5">
-              (US$ {(calculateTotal() / 36.62).toFixed(2)})
+              (US$ {(calculateTotal() / exchangeRate).toFixed(2)})
             </div>
           </div>
 
@@ -282,7 +332,19 @@ export const OrderModal = ({ table, onClose }) => {
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
-           
+              <button
+                type="button"
+                disabled={unprintedItems.length === 0}
+                onClick={() => setShowComanda(true)}
+                className="w-full bg-slate-900 text-yellow-500 font-bold py-3 rounded-lg text-sm hover:bg-slate-800 border border-slate-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-sm relative"
+              >
+                Imprimir Comanda
+                {unprintedItems.length > 0 && (
+                  <span className="absolute right-3 bg-yellow-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {unprintedItems.length}
+                  </span>
+                )}
+              </button>
               <button
                 type="button"
                 disabled={items.length === 0}
@@ -291,19 +353,26 @@ export const OrderModal = ({ table, onClose }) => {
               >
                 <Printer className="w-4 h-4" /> Imprimir Pre-cuenta
               </button>
-
-              
             </div>
           )}
         </div>
       </div>
-      
+
       {showPreview && (
         <InvoicePreview
           table={table}
           items={items}
           customerName={customerName}
           onClose={handleCloseAfterPrint}
+        />
+      )}
+
+      {showComanda && (
+        <ComandaPreview
+          table={table}
+          items={unprintedItems}
+          waiterName={table.assignedWaiterName}
+          onClose={handleCloseComanda}
         />
       )}
     </div>

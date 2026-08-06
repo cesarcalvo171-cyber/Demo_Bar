@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { AdminHeader } from './AdminHeader';
 import { AdminDashboard } from './AdminDashboard';
-import { CatalogManager } from '../cashier/CatalogManager';
-import { Inventory } from '../cashier/Inventory';
-import { InvoiceHistory } from '../cashier/InvoiceHistory';
+import { CatalogManager } from './CatalogManager';
+import { Inventory } from './Inventory';
+import { AdminShiftHistory } from './AdminShiftHistory';
 import { UserManager } from './UserManager';
-import { LayoutDashboard, ShoppingBag, Package, Users, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { ExpensesManager } from './ExpensesManager';
+import { ProfitLossReport } from './ProfitLossReport';
+import { GlobalAlerts } from './GlobalAlerts';
+import { LayoutDashboard, ShoppingBag, Package, Users, ChevronLeft, ChevronRight, FileText, Wallet, LineChart } from 'lucide-react';
 import { MdRestaurant } from "react-icons/md";
+
+import logo from "../../assets/Imagenes/logo.png";
 
 export const AdminView = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -15,6 +20,8 @@ export const AdminView = () => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'history', label: 'Historial Cierres', icon: FileText },
+    { id: 'expenses', label: 'Gastos y Pagos', icon: Wallet },
+    { id: 'profitloss', label: 'Reportes Financieros', icon: LineChart },
     { id: 'catalog', label: 'Catálogo', icon: ShoppingBag },
     { id: 'inventory', label: 'Inventario', icon: Package },
     { id: 'users', label: 'Usuarios', icon: Users },
@@ -22,6 +29,7 @@ export const AdminView = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
+      <GlobalAlerts />
       <AdminHeader />
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar del Administrador */}
@@ -40,9 +48,12 @@ export const AdminView = () => {
           <div className="p-4 flex flex-col h-full">
             {/* Logo Admin */}
             <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
-              <div className="w-10 h-10 bg-slate-800 rounded-[12px] flex items-center justify-center shrink-0">
-                <MdRestaurant className="w-5 h-5 text-yellow-500" />
+              <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
+                <img src={logo} alt="Moncho Bar" className="w-full h-full object-cover" />
               </div>
+              {!isCollapsed && (
+                <span className="ml-3 font-black text-slate-800 text-lg uppercase tracking-tight truncate">Moncho Bar</span>
+              )}
             </div>
 
             {/* Menú de Navegación */}
@@ -74,7 +85,9 @@ export const AdminView = () => {
         <div className="flex-1 w-full overflow-y-auto p-6 bg-slate-50">
           <div className="max-w-[1200px] mx-auto">
             {activeTab === 'dashboard' && <AdminDashboard />}
-            {activeTab === 'history' && <InvoiceHistory />}
+            {activeTab === 'history' && <AdminShiftHistory />}
+            {activeTab === 'expenses' && <ExpensesManager />}
+            {activeTab === 'profitloss' && <ProfitLossReport />}
             {activeTab === 'catalog' && <CatalogManager />}
             {activeTab === 'inventory' && <Inventory />}
             {activeTab === 'users' && <UserManager />}

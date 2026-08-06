@@ -1,58 +1,93 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import { useBar } from '../../context/BarContext';
-import { DollarSign, Receipt, ShoppingCart, TrendingUp, Archive, AlertTriangle } from 'lucide-react';
+import { DollarSign, Receipt, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
 
 export const Dashboard = () => {
-  const { paidInvoices, closeCashRegister, shiftStartTime, users } = useBar();
-  const [showCloseModal, setShowCloseModal] = useState(false);
-  const [cashierNameInput, setCashierNameInput] = useState('');
+  const { paidInvoices, shiftStartTime, tables, closeShift, currentUser } = useBar();
+  const printRef = useRef(null);
 
   const totalInvoicesCount = paidInvoices.length;
   const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + inv.total, 0);
-  const totalCard = paidInvoices.filter(i => i.paymentMethod === 'Tarjeta').reduce((sum, inv) => sum + inv.total, 0);
+  const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Efectivo').reduce((sum, inv) => sum + inv.total, 0);
   const totalSales = totalCash + totalCard;
-  const averageTicket = totalInvoicesCount > 0 ? totalSales / totalInvoicesCount : 0;
 
-  const handleConfirmClose = () => {
-    closeCashRegister(cashierNameInput || 'Cajero Principal');
-    setShowCloseModal(false);
-    setCashierNameInput('');
+  const activeTablesCount = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago').length;
+
+  const handleCloseShift = () => {
+    if (activeTablesCount > 0) {
+      alert(`No puedes cerrar caja. Hay ${activeTablesCount} mesa(s) abierta(s) o pendiente(s) de pago.`);
+      return;
+    }
+
+    if (window.confirm('¿Estás seguro que deseas realizar el Cierre de Caja? Esto transferirá los datos al historial del Administrador y pondrá tu caja en C$0.00.')) {
+      printZReceipt();
+      closeShift();
+      alert('Caja cerrada con éxito. ¡Buen turno!');
+    }
+  };
+
+  const printZReceipt = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("es-NI", { day: "2-digit", month: "long", year: "numeric" });
+    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const printContent = `
+      <div style="text-align: center; margin-bottom: 10px;">
+        <div style="font-size: 15px; font-weight: bold;">DEMO BAR</div>
+        <div style="font-size: 10px; color: #666; margin-top: 2px;">Cierre de Caja (Corte Z)</div>
+        <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
+        <div style="font-size: 11px;">Fecha: ${dateStr}</div>
+        <div style="font-size: 11px;">Hora: ${timeStr}</div>
+        <div style="font-size: 11px;">Cajero: ${currentUser?.name || 'Cajero'}</div>
+      </div>
+      <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
+      <div style="margin-bottom: 8px; font-size: 12px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+          <span style="font-weight: bold;">Total Facturas:</span>
+          <span>${totalInvoicesCount}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+          <span style="font-weight: bold;">Total Efectivo:</span>
+          <span>C$${totalCash.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+          <span style="font-weight: bold;">Total Tarjeta/Transf:</span>
+          <span>C$${totalCard.toFixed(2)}</span>
+        </div>
+      </div>
+      <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
+      <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 10px;">
+        <span>TOTAL VENTAS:</span>
+        <span>C$${totalSales.toFixed(2)}</span>
+      </div>
+      <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
+      <div style="text-align: center; font-size: 11px; color: #777;">
+        <div>Fin de Turno</div>
+      </div>
+    `;
+
+    const printWindow = window.open("", "_blank", "width=420,height=600");
+    if (printWindow) {
+      printWindow.document.write(
+        "<html><head><title>Cierre de Caja</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:16px;width:300px;}</style></head><body>" +
+          printContent +
+          "<script>window.onload=function(){window.print();window.close();}</script></body></html>"
+      );
+      printWindow.document.close();
+    }
   };
 
   return (
     <div className="space-y-6">
-      
-      {/* Encabezado con Botón de Cierre */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800 m-0">Estado de Caja (Turno Actual)</h2>
-          <p className="text-xs text-slate-500 m-0 mt-1">
-            Abierta desde: {new Date(shiftStartTime).toLocaleString()}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCloseModal(true)}
-          disabled={paidInvoices.length === 0}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all ${
-            paidInvoices.length === 0 
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-          }`}
-        >
-          <Archive className="w-4 h-4" />
-          Realizar Corte de Caja (Z)
-        </button>
-      </div>
-
-      {/* Tarjetas de Métricas Principales (3 Columnas) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Tarjetas de Métricas Principales (2 Columnas) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Total Ventas del Día */}
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
           <div className=" text-yellow-500 p-3 ">
             <DollarSign className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Ventas del Día</p>
+            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Ventas del Turno</p>
             <h3 className="text-2xl font-extrabold text-white  font-serif m-0">C${totalSales.toFixed(2)}</h3>
           </div>
         </div>
@@ -67,18 +102,38 @@ export const Dashboard = () => {
             <h3 className="text-2xl font-extrabold text-white font-serif m-0">{totalInvoicesCount}</h3>
           </div>
         </div>
-
-        {/* Ticket Promedio */}
-        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className=" text-yellow-500 p-3 ">
-            <TrendingUp className="w-6 h-6 text-yellow-500" />
-          </div>
-          <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Ticket Promedio</p>
-            <h3 className="text-2xl font-extrabold text-white font-serif m-0">C${averageTicket.toFixed(2)}</h3>
-          </div>
-        </div>
       </div>
+
+      {/* Botón de Cierre de Caja */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 m-0">Cierre de Caja</h3>
+          <p className="text-sm text-slate-500 mt-1 mb-0">Imprime el ticket de corte (Z) y transfiere las ventas al historial del Administrador.</p>
+        </div>
+        <button
+          onClick={handleCloseShift}
+          disabled={activeTablesCount > 0}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-md ${
+            activeTablesCount > 0 
+              ? 'bg-slate-400 cursor-not-allowed opacity-70' 
+              : 'bg-red-600 hover:bg-red-700 hover:shadow-red-500/25 cursor-pointer'
+          }`}
+        >
+          {activeTablesCount > 0 ? (
+            <AlertTriangle className="w-5 h-5" />
+          ) : (
+            <CheckCircle className="w-5 h-5" />
+          )}
+          Cerrar Caja
+        </button>
+      </div>
+
+      {activeTablesCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm font-semibold">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+          <p className="m-0">No puedes cerrar la caja porque hay {activeTablesCount} mesa(s) con clientes. Debes cobrar o cancelar todas las cuentas antes de cerrar el turno.</p>
+        </div>
+      )}
 
       {/* Historial de Facturas Emitidas Hoy en Turno */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
@@ -133,71 +188,6 @@ export const Dashboard = () => {
           </div>
         )}
       </div>
-
-      {/* Modal de Cierre de Caja */}
-      {showCloseModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-slate-900 p-5 text-center relative">
-              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <AlertTriangle className="w-6 h-6 text-red-500" />
-              </div>
-              <h3 className="text-lg font-bold text-white m-0">Confirmar Cierre de Caja</h3>
-              <p className="text-xs text-slate-400 mt-1">Se generará el corte y el turno actual quedará en C$0.00.</p>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Cajero Responsable del Corte:
-                  </label>
-                  <select
-                    value={cashierNameInput}
-                    onChange={(e) => setCashierNameInput(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-slate-800"
-                  >
-                    <option value="">-- Seleccionar Cajero --</option>
-                    {users.filter(u => u.role === 'cajero').map(u => (
-                      <option key={u.id} value={u.name}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm">
-                  <span className="text-slate-600 font-semibold">Total Efectivo en Cajón:</span>
-                  <span className="text-emerald-600 font-extrabold text-base">C${totalCash.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-600 font-semibold">Total Vouchers Tarjeta:</span>
-                  <span className="text-blue-600 font-extrabold text-base">C${totalCard.toFixed(2)}</span>
-                </div>
-                <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
-                  <span className="text-slate-800 font-bold uppercase text-xs">Total Facturado:</span>
-                  <span className="text-slate-900 font-extrabold text-xl">C${totalSales.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowCloseModal(false)}
-                  className="flex-1 py-2.5 px-4 bg-white border border-slate-300 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmClose}
-                  className="flex-1 py-2.5 px-4 bg-red-600 text-white font-bold text-sm rounded-xl hover:bg-red-700 transition-colors shadow-sm"
-                >
-                  Confirmar Cierre
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

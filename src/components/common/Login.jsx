@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBar } from "../../context/BarContext";
-import { Lock, User, LogIn, AlertCircle } from "lucide-react";
-import { MdRestaurant } from "react-icons/md";
+import { Lock, User, LogIn, AlertCircle, Shield } from 'lucide-react';
+import logo from "../../assets/Imagenes/logo.png";
 
 export const Login = () => {
   const { login, loginMesero } = useBar();
@@ -54,8 +54,8 @@ export const Login = () => {
       <div className="bg-slate-950 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
         {/* Header del login */}
         <div className="pt-10 pb-6 text-center px-8  ">
-          <div className="w-14 h-14 bg-yellow-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-yellow-500">
-            <MdRestaurant className="w-8 h-8" />
+          <div className="w-60 h-45 flex items-center justify-center mx-auto  ">
+           <img src={logo} alt="" />
           </div>
         </div>
         {/*Cabezera del step */}

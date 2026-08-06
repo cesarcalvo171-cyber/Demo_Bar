@@ -170,7 +170,8 @@ export const InvoiceHistory = () => {
                                               <span className="text-slate-900 font-extrabold mr-2">{item.quantity}x</span> 
                                               {item.name}
                                             </span>
-                                            <span className="font-bold text-slate-900">C${(item.price * item.quantity).toFixed(2)}</span>
+                                            <span className="font-bold text-slate-900">C${(item.price * item.quantity).toFixed(2)}</span>^
+                                             <span className="font-bold text-slate-900">C${(item.price * item.quantity / 36.5).toFixed(2)}</span>
                                           </div>
                                         ))}
                                       </div>

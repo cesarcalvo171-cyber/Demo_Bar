@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
 import { Printer, CheckCircle, X } from "lucide-react";
 import { useBar } from "../../context/BarContext";
+import logo from "../../assets/Imagenes/logo.png";
 
-export const InvoicePreview = ({ table, items, customerName, onClose }) => {
-  const { currentUser } = useBar();
+
+export const InvoicePreview = ({ table, items, customerName, paymentDetails, onClose }) => {
+  const { currentUser, exchangeRate } = useBar();
   const printRef = useRef();
   const [hasPrinted, setHasPrinted] = useState(false);
 
@@ -21,7 +23,9 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const invoiceNum = "PREV-" + Date.now().toString().slice(-6);
+  
+  const isFinal = !!paymentDetails;
+  const invoiceNum = (isFinal ? "FAC-" : "PREV-") + Date.now().toString().slice(-6);
 
   const handlePrint = (e) => {
     if (e) {
@@ -32,7 +36,7 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
     const printWindow = window.open("", "_blank", "width=420,height=680");
     if (printWindow) {
       printWindow.document.write(
-        "<html><head><title>Pre-Recibo</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:16px;width:300px;}</style></head><body>" +
+        "<html><head><title>" + (isFinal ? "Factura" : "Pre-Recibo") + "</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:16px;width:300px;}</style></head><body>" +
           printContent +
           "<script>window.onload=function(){window.print();window.close();}</script></body></html>",
       );
@@ -59,13 +63,15 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 text-yellow-400" />
             <span className="text-white font-bold text-sm">
-              Pre-Recibo del Cliente
+              {isFinal ? "Factura del Cliente" : "Pre-Recibo del Cliente"}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-              Enviado a Caja
-            </span>
+            {!isFinal && (
+              <span className="bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                Enviado a Caja
+              </span>
+            )}
             <button
               type="button"
               onClick={handleCloseBtn}
@@ -86,8 +92,15 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
           >
             <div style={{ textAlign: "center", marginBottom: "10px" }}>
               <div style={{ fontSize: "15px", fontWeight: "bold" }}>
-                DEMO BAR
+             MONCHOS BAR
               </div>
+              <div style={{ display: "flex",
+    justifyContent: "center",
+    alignItems: "center", }}>
+                <img src={logo} alt=""  className="h-12 w-12 "/>
+
+              </div>
+              
               <div
                 style={{ fontSize: "10px", color: "#666", marginTop: "2px" }}
               >
@@ -131,10 +144,10 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
                 }}
               >
                 <span style={{ fontWeight: "bold" }}>Mesero:</span>
-                <span>{currentUser?.name || "Atención en Mesa"}</span>
+                <span>{currentUser?.name || table.assignedWaiterName || "Mesero"}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontWeight: "bold" }}>Ref.:</span>
+                <span style={{ fontWeight: "bold" }}>{isFinal ? "Factura N°:" : "Ref.:"}</span>
                 <span style={{ fontSize: "10px" }}>{invoiceNum}</span>
               </div>
             </div>
@@ -215,12 +228,36 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
                 color: "#555",
               }}
             >
-              <span>Total USD (Tasa 36.62):</span>
-              <span>US${(total / 36.62).toFixed(2)}</span>
+              <span>Total USD (Tasa {exchangeRate}):</span>
+              <span>US${(total / exchangeRate).toFixed(2)}</span>
             </div>
-            <div
-              style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
-            ></div>
+            
+            {isFinal && paymentDetails && (
+              <>
+                <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }}></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                  <span style={{ fontWeight: "bold" }}>Método Pago:</span>
+                  <span>{paymentDetails.method}</span>
+                </div>
+                {paymentDetails.method === 'Efectivo' ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                      <span style={{ fontWeight: "bold" }}>Recibido ({paymentDetails.currency}):</span>
+                      <span>{paymentDetails.currency === 'NIO' ? 'C$' : 'US$'}{paymentDetails.received.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                      <span style={{ fontWeight: "bold" }}>Vuelto ({paymentDetails.currency}):</span>
+                      <span>{paymentDetails.currency === 'NIO' ? 'C$' : 'US$'}{paymentDetails.change.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                    <span style={{ fontWeight: "bold" }}>Ref/Voucher:</span>
+                    <span>{paymentDetails.reference}</span>
+                  </div>
+                )}
+              </>
+            )}
 
             <div
               style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
@@ -228,11 +265,11 @@ export const InvoicePreview = ({ table, items, customerName, onClose }) => {
             <div
               style={{ textAlign: "center", fontSize: "11px", color: "#777" }}
             >
-              <div>¡Gracias por su visita!</div>
+              <div>¡Gracias por su {isFinal ? "compra" : "visita"}!</div>
               <div style={{ marginTop: "3px" }}>
-                Este documento es un pre-recibo.
+                Este documento es {isFinal ? "una factura." : "un pre-recibo."}
               </div>
-              <div>No tiene validez fiscal.</div>
+              {!isFinal && <div>No tiene validez fiscal.</div>}
             </div>
           </div>
         </div>

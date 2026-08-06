@@ -26,8 +26,9 @@ const TableIcon = (props) => (
 import { WaiterHeader } from './WaiterHeader';
 
 export const TableGrid = () => {
-  const { tables } = useBar();
-  const [selectedTable, setSelectedTable] = useState(null);
+  const { tables, addBarAccount } = useBar();
+  const [selectedTableId, setSelectedTableId] = useState(null);
+  const selectedTable = tables.find(t => t.id === selectedTableId);
    // Contadores rápidos para la barra de estado
   const occupiedTables = tables.filter(t => t.status === 'ocupada').length;
   const pendingPaymentTables = tables.filter(t => t.status === 'pendiente_pago').length;
@@ -52,33 +53,49 @@ export const TableGrid = () => {
   
 
   {/* Resumen del estado actual del local */}
-  <div className="flex items-center gap-4 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700 text-xs md:text-sm">
-    <div className="flex items-center gap-1.5">
-      <span className="text-green-500">
-         <TableIcon className="w-8 h-8 font-extrabold stroke-current stroke-[1px]" />
-      </span>
-      <span className="text-slate-300 font-serif text-[18px]">
-        Libres: <strong>{10 - occupiedTables - pendingPaymentTables}</strong>
-      </span>
-    </div>
+  <div className="flex items-center justify-between w-full md:w-auto md:flex-1 gap-4 bg-slate-800 px-4 py-3 rounded-xl border border-slate-700 text-xs md:text-sm shadow-md">
+    <div className="flex gap-4">
+      <div className="flex items-center gap-1.5">
+        <span className="text-green-500">
+           <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
+        </span>
+        <span className="text-slate-300 font-serif text-[16px]">
+          Libres: <strong>{10 - occupiedTables - pendingPaymentTables > 0 ? 10 - occupiedTables - pendingPaymentTables : 0}</strong>
+        </span>
+      </div>
 
-    <div className="flex items-center gap-1.5">
-      <span className="text-red-500">
-        <TableIcon className="w-8 h-8 font-extrabold stroke-current stroke-[1px]" />
-      </span>
-      <span className="text-slate-300 font-serif text-[18px]">
-        Ocupadas: <strong>{occupiedTables}</strong>
-      </span>
-    </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-red-500">
+          <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
+        </span>
+        <span className="text-slate-300 font-serif text-[16px]">
+          Ocupadas: <strong>{occupiedTables}</strong>
+        </span>
+      </div>
 
-    <div className="flex items-center gap-1.5">
-      <span className="text-yellow-500">
-        <IoMdTime />
-      </span>
-      <span className="text-slate-300 font-serif text-[18px]">
-        Por Cobrar: <strong>{pendingPaymentTables}</strong>
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-yellow-500">
+          <IoMdTime className="w-5 h-5" />
+        </span>
+        <span className="text-slate-300 font-serif text-[16px]">
+          Por Cobrar: <strong>{pendingPaymentTables}</strong>
+        </span>
+      </div>
     </div>
+    
+    <button
+      onClick={() => {
+        const customerName = prompt("Ingresa el nombre del cliente en barra:");
+        if (customerName) {
+          const newId = addBarAccount(customerName);
+          setSelectedTableId(newId);
+        }
+      }}
+      className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shrink-0 cursor-pointer"
+    >
+      <span className="text-xl leading-none mb-0.5">+</span>
+      <span>Cuenta en Barra</span>
+    </button>
   </div>
 
 </div>
@@ -89,7 +106,7 @@ export const TableGrid = () => {
           <TableCard
             key={table.id}
             table={table}
-            onClick={() => setSelectedTable(table)}
+            onClick={() => setSelectedTableId(table.id)}
           />
         ))}
       </div>
@@ -98,13 +115,13 @@ export const TableGrid = () => {
       {selectedTable && (
         <Modal
           isOpen={Boolean(selectedTable)}
-          onClose={() => setSelectedTable(null)}
+          onClose={() => setSelectedTableId(null)}
           title={`Gestión de ${selectedTable.name}`}
           maxWidth="max-w-7xl"
         >
           <OrderModal
             table={selectedTable}
-            onClose={() => setSelectedTable(null)}
+            onClose={() => setSelectedTableId(null)}
           />
         </Modal>
       )}

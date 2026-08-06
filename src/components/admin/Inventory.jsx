@@ -151,53 +151,72 @@ export const Inventory = () => {
           maxWidth="max-w-sm"
         >
           <Formik
-            initialValues={{ stock: selectedProduct.stock }}
+            initialValues={{ stockToAdd: '' }}
             validate={values => {
               const errors = {};
-              if (values.stock === '' || values.stock < 0) {
-                errors.stock = 'El stock no puede ser negativo ni vacío';
+              if (values.stockToAdd === '' || isNaN(values.stockToAdd)) {
+                errors.stockToAdd = 'Debes ingresar una cantidad';
+              } else {
+                const newTotal = selectedProduct.stock + parseInt(values.stockToAdd, 10);
+                if (newTotal < 0) {
+                  errors.stockToAdd = `No puedes restar más del stock actual (Máx: -${selectedProduct.stock})`;
+                }
               }
               return errors;
             }}
             onSubmit={(values) => {
-              updateStock(selectedProduct.id, values.stock);
+              const newTotal = selectedProduct.stock + parseInt(values.stockToAdd, 10);
+              updateStock(selectedProduct.id, newTotal);
               setSelectedProduct(null);
             }}
           >
-            {({ isSubmitting }) => (
-              <Form className="space-y-4">
-                <div className="bg-slate-50 p-3 rounded border border-slate-200 text-xs">
-                  <p className="m-0 text-slate-600">Stock actual: <strong>{selectedProduct.stock} unidades</strong></p>
-                </div>
+            {({ isSubmitting, values }) => {
+              const parsedVal = parseInt(values.stockToAdd, 10) || 0;
+              const newTotal = selectedProduct.stock + parsedVal;
+              
+              return (
+                <Form className="space-y-4">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
+                    <span className="text-black font-semibold">Stock actual:</span>
+                    <span className="text-xl font-black text-slate-800">{selectedProduct.stock}</span>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Nuevo Stock Disponible:</label>
-                  <Field
-                    type="number"
-                    name="stock"
-                    className="w-full p-2 border border-slate-300 rounded text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                  <ErrorMessage name="stock" component="div" className="text-red-500 text-[10px] mt-1 font-semibold" />
-                </div>
+                  <div>
+                    <label className="block text-sm font-bold text-black mb-2">Cantidad a Sumar o Restar:</label>
+                    <Field
+                      type="number"
+                      name="stockToAdd"
+                      placeholder="Ej: 10 (sumar) o -5 (restar)"
+                      className="w-full p-4 border-2 border-slate-300 rounded-xl text-lg text-slate-900 bg-white font-black focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-400 placeholder:font-medium placeholder:text-sm"
+                    />
+                    <ErrorMessage name="stockToAdd" component="div" className="text-red-500 text-[11px] mt-1.5 font-bold" />
+                  </div>
 
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedProduct(null)}
-                    className="flex-1 bg-slate-200 text-slate-700 font-semibold py-2 rounded text-xs hover:bg-slate-300 cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 bg-emerald-600 text-white font-bold py-2 rounded text-xs hover:bg-emerald-700 cursor-pointer shadow-xs"
-                  >
-                    Guardar Stock
-                  </button>
-                </div>
-              </Form>
-            )}
+                  {values.stockToAdd !== '' && !isNaN(parsedVal) && newTotal >= 0 && (
+                    <div className="text-center bg-emerald-50 text-emerald-800 font-bold p-2 rounded-lg border border-emerald-200 text-sm">
+                      El nuevo stock será: {newTotal}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-2 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProduct(null)}
+                      className="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm hover:bg-slate-300 cursor-pointer transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-black border-2 border-white text-yellow-500 font-black py-3 rounded-xl text-sm hover:bg-slate-800 cursor-pointer shadow-lg transition-colors"
+                    >
+                      Aplicar Ajuste
+                    </button>
+                  </div>
+                </Form>
+              );
+            }}
           </Formik>
         </Modal>
       )}

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useBar } from '../../context/BarContext';
-import { DollarSign, Receipt, ShoppingCart, Archive, Users } from 'lucide-react';
+import { DollarSign, Receipt, ShoppingCart, Archive, Users, DollarSign as DollarIcon, RefreshCcw, TrendingUp } from 'lucide-react';
 
 export const AdminDashboard = () => {
-  const { paidInvoices, products, cashRegisterHistory, users } = useBar();
+  const { paidInvoices, products, cashRegisterHistory, users, exchangeRate, updateExchangeRate, tables } = useBar();
 
   // Cálculo histórico total (cierres pasados + turno actual)
   const pastInvoices = cashRegisterHistory.flatMap(c => c.invoices || []);
@@ -13,20 +13,54 @@ export const AdminDashboard = () => {
   const totalCashSales = allInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + inv.total, 0);
   const totalCardSales = allInvoices.filter(i => i.paymentMethod === 'Tarjeta').reduce((sum, inv) => sum + inv.total, 0);
 
-  // Productos con bajo stock (< 10) que sí manejan inventario
-  const lowStockProducts = products.filter(p => p.stock !== null && p.stock < 10);
+  const getLowStockThreshold = (category) => {
+    switch (category?.toLowerCase()) {
+      case 'cervezas': return 45;
+      case 'licores': return 5;
+      case 'bebida sin alcohol': return 10;
+      default: return 10;
+    }
+  };
+
+  // Productos con bajo stock que sí manejan inventario
+  const lowStockProducts = products.filter(p => {
+    if (p.stock === null) return false;
+    const threshold = getLowStockThreshold(p.category);
+    return p.stock <= threshold;
+  });
 
   return (
     <div className="space-y-6">
+
       {/* Tarjetas Principales del Admin */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        
+        {/* Tasa de Cambio */}
+        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-center gap-3">
+          <div className="flex items-center gap-2">
+            <DollarIcon className="w-5 h-5 text-yellow-500" />
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Tasa de Cambio</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 font-bold">C$</span>
+            <input 
+              type="number" 
+              value={exchangeRate || ''}
+              onChange={(e) => updateExchangeRate(e.target.value)}
+              step="0.01"
+              className="w-full bg-slate-800 text-white font-bold px-3 py-1.5 rounded border border-slate-700 focus:outline-none focus:border-yellow-500 transition-colors"
+              placeholder="Ej. 36.62"
+            />
+          </div>
+        </div>
+
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
           <div className="text-yellow-500 p-3">
             <DollarSign className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Ventas Históricas</p>
-            <h3 className="text-2xl font-extrabold text-white font-serif m-0">C${totalHistoricalSales.toFixed(2)}</h3>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Ventas Históricas</p>
+            <h3 className="text-xl font-extrabold text-white m-0">C${totalHistoricalSales.toFixed(2)}</h3>
           </div>
         </div>
 
@@ -35,8 +69,8 @@ export const AdminDashboard = () => {
             <Archive className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Cortes de Caja</p>
-            <h3 className="text-2xl font-extrabold text-white font-serif m-0">{cashRegisterHistory.length}</h3>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Cortes de Caja</p>
+            <h3 className="text-xl font-extrabold text-white m-0">{cashRegisterHistory.length}</h3>
           </div>
         </div>
 
@@ -45,8 +79,8 @@ export const AdminDashboard = () => {
             <ShoppingCart className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Alertas Stock</p>
-            <h3 className="text-2xl font-extrabold text-white font-serif m-0">{lowStockProducts.length} prod.</h3>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Alertas Stock</p>
+            <h3 className="text-xl font-extrabold text-white m-0">{lowStockProducts.length} prod.</h3>
           </div>
         </div>
 
@@ -55,8 +89,8 @@ export const AdminDashboard = () => {
             <Users className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Personal Activo</p>
-            <h3 className="text-2xl font-extrabold text-white font-serif m-0">{users.length} usuarios</h3>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Personal Activo</p>
+            <h3 className="text-xl font-extrabold text-white m-0">{users.length} usuarios</h3>
           </div>
         </div>
       </div>
@@ -96,7 +130,7 @@ export const AdminDashboard = () => {
         <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 m-0 flex items-center justify-between">
             <span>Productos por Agotarse (Inventario Crítico)</span>
-            <span className="text-xs text-amber-600 font-semibold">{lowStockProducts.length} productos bajo 10 unidades</span>
+            <span className="text-xs text-amber-600 font-semibold">{lowStockProducts.length} productos bajo su límite</span>
           </h3>
 
           {lowStockProducts.length === 0 ? (

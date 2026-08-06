@@ -2,6 +2,8 @@ import React from 'react';
 import { Utensils, LogOut, User } from 'lucide-react';
 import { useBar } from '../../context/BarContext';
 
+import logo from "../../assets/Imagenes/logo.png";
+
 export const WaiterHeader = () => {
   const { currentUser, logout } = useBar();
 
@@ -10,11 +12,11 @@ export const WaiterHeader = () => {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Titulo del Sistema */}
         <div className="flex items-center gap-3">
-          <div className="bg-amber-500 text-slate-900 p-2 rounded-lg font-bold flex items-center justify-center">
-            <Utensils className="w-6 h-6" />
+          <div className="bg-white rounded-full overflow-hidden w-10 h-10 flex items-center justify-center shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+            <img src={logo} alt="Moncho Bar" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-[26px] font-bold font-serif tracking-tight text-white m-0">Panel de Mesas</h1>
+            <h1 className="text-[26px] font-bold font-serif tracking-tight text-white m-0">Moncho's Bar</h1>
           </div>
         </div>
 

@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
-import { PendingBills } from './PendingBills';
-import { InvoiceHistory } from './InvoiceHistory';
-import { LayoutDashboard, Receipt, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { ActiveOrders } from './ActiveOrders';
+import { LayoutDashboard, Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CashierHeader } from './CashierHeader';
 import { MdRestaurant } from "react-icons/md";
 import { useBar } from '../../context/BarContext';
 
+import logo from "../../assets/Imagenes/logo.png";
+
 export const CashierView = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('active');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { tables } = useBar();
 
-  // Calcular cuentas pendientes
-  const pendingCount = tables.filter(t => t.status === 'pendiente_pago').length;
+  // Contar cuantas mesas estan activas (ocupada o pendiente de pago)
+  const activeCount = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago').length;
 
   const tabs = [
+    { id: 'active', label: 'Pedidos Activos', icon: Receipt, badge: activeCount > 0 ? activeCount : null },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pending', label: 'Cobros', icon: Receipt, badge: pendingCount > 0 ? pendingCount : null },
-    { id: 'history', label: 'Historial', icon: FileText },
   ];
 
   return (
@@ -43,9 +43,12 @@ export const CashierView = () => {
           <div className="p-4 flex flex-col h-full">
             {/* Logo Simulado */}
             <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
-              <div className="w-10 h-10 bg-slate-800 rounded-[12px] flex items-center justify-center shrink-0">
-                <MdRestaurant className="w-5 h-5 text-yellow-500" />
+              <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
+                <img src={logo} alt="Moncho Bar" className="w-full h-full object-cover" />
               </div>
+              {!isCollapsed && (
+                <span className="ml-3 font-black text-slate-800 text-lg uppercase tracking-tight truncate">Moncho Bar</span>
+              )}
             </div>
 
             {/* Menú de Navegación */}
@@ -93,10 +96,9 @@ export const CashierView = () => {
 
         {/* Área de Contenido Principal */}
         <div className="flex-1 w-full overflow-y-auto p-6 bg-slate-50">
-          <div className="max-w-[1200px] mx-auto">
+          <div className="max-w-full lg:max-w-[1200px] mx-auto h-full">
+            {activeTab === 'active' && <ActiveOrders />}
             {activeTab === 'dashboard' && <Dashboard />}
-            {activeTab === 'pending' && <PendingBills />}
-            {activeTab === 'history' && <InvoiceHistory />}
           </div>
         </div>
         
