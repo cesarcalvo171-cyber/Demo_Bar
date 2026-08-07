@@ -94,14 +94,14 @@ export const ProductCatalog = ({
             <div
               key={product.id}
               onClick={() => !isOutOfStock && onSelectProduct(product)}
-              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative h-[300px] ${
+              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative h-full min-h-[260px] ${
                 isOutOfStock
                   ? "bg-red-900/50 border-red-900/50 opacity-60 cursor-not-allowed"
                   : "bg-[#191c25] border-slate-700/50 hover:border-slate-600 cursor-pointer shadow-sm"
               }`}
             >
               {/* Imagen y Precio */}
-              <div className="relative h-[160px] w-full shrink-0 bg-[#222533]">
+              <div className="relative h-[130px] md:h-[160px] w-full shrink-0 bg-[#222533]">
                 {product.image && (
                   <img
                     src={product.image}

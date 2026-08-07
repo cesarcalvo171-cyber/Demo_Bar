@@ -34,6 +34,7 @@ export const OrderModal = ({ table, onClose }) => {
   const [showComanda, setShowComanda] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [search, SetSearch] = useState("");
+  const [mobileView, setMobileView] = useState("catalog"); // "catalog" | "order"
 
   // Validar si el usuario activo es el mesero que abrió la mesa, si es Administrador, o si es cuenta de barra
   const isOwnerOrAdmin =
@@ -155,9 +156,10 @@ export const OrderModal = ({ table, onClose }) => {
   
   
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[500px]">
-      {/* Columna Izquierda: Catálogo de Productos */}
-      <div className="flex-1 border-b lg:border-b-0 lg:border-r border-slate-700/50 lg:pr-6 flex flex-col overflow-hidden">
+    <div className="flex flex-col h-full min-h-[500px] relative">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        {/* Columna Izquierda: Catálogo de Productos */}
+        <div className={`flex-1 lg:border-r border-slate-700/50 lg:pr-6 flex-col overflow-hidden pb-[70px] lg:pb-0 ${mobileView === 'catalog' ? 'flex' : 'hidden lg:flex'}`}>
         {errorMsg && (
           <div className="mb-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -185,7 +187,7 @@ export const OrderModal = ({ table, onClose }) => {
       </div>
 
       {/* Columna Derecha: Detalle de la Mesa y Pedido */}
-      <div className="w-full lg:w-[380px] flex flex-col justify-between bg-[#191c25] p-5 rounded-r-xl border-l border-slate-700/50">
+      <div className={`w-full lg:w-[380px] flex-col bg-[#191c25] p-5 rounded-t-2xl lg:rounded-t-none lg:rounded-r-xl pb-[90px] lg:pb-5 h-full ${mobileView === 'order' ? 'flex' : 'hidden lg:flex'}`}>
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex justify-between items-start pb-4 border-b border-slate-700/50 mb-4">
             <div>
@@ -357,6 +359,26 @@ export const OrderModal = ({ table, onClose }) => {
             </div>
           )}
         </div>
+      </div>
+      </div>
+
+      {/* Botón flotante para cambiar de vista en móvil */}
+      <div className="lg:hidden absolute bottom-0 left-0 right-0 p-4 bg-slate-900 border-t border-slate-800 shrink-0 z-10 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.3)]">
+        <button
+          onClick={() => setMobileView(v => v === 'catalog' ? 'order' : 'catalog')}
+          className={`w-full py-3.5 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-colors ${mobileView === 'catalog' ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-700 hover:bg-slate-600'}`}
+        >
+          {mobileView === 'catalog' ? (
+            <>
+              Ver Comanda ({items.reduce((sum, i) => sum + i.quantity, 0)} items)
+              <span className="bg-indigo-800 px-3 py-1 rounded-full text-xs shadow-inner">
+                C${calculateTotal().toFixed(2)}
+              </span>
+            </>
+          ) : (
+            <>Volver al Catálogo</>
+          )}
+        </button>
       </div>
 
       {showPreview && (

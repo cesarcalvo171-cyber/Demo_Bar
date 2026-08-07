@@ -51,7 +51,7 @@ export const TableGrid = () => {
 
   {/* Resumen del estado actual del local */}
   <div className="flex items-center justify-between w-full md:w-auto md:flex-1 gap-4 bg-slate-800 px-4 py-3 rounded-xl border border-slate-700 text-xs md:text-sm shadow-md">
-    <div className="flex gap-4">
+    <div className="flex flex-wrap gap-4">
       <div className="flex items-center gap-1.5">
         <span className="text-green-500">
            <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
