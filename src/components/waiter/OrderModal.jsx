@@ -35,9 +35,10 @@ export const OrderModal = ({ table, onClose }) => {
   const [errorMsg, setErrorMsg] = useState("");
   const [search, SetSearch] = useState("");
 
-  // Validar si el usuario activo es el mesero que abrió la mesa o si es Administrador
+  // Validar si el usuario activo es el mesero que abrió la mesa, si es Administrador, o si es cuenta de barra
   const isOwnerOrAdmin =
     currentUser?.role === "admin" ||
+    table.isBar ||
     !table.assignedWaiterId ||
     table.assignedWaiterId === currentUser?.id;
 
