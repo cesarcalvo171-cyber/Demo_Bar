@@ -62,7 +62,7 @@ export const ProductCatalog = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1d27]">
+    <div className="flex flex-col flex-1 min-h-0 bg-[#1a1d27]">
       {/* Botones de Categorías */}
       {search.trim() === "" && (
         <div className="flex flex-wrap gap-2.5 mb-5 pb-4 border-b border-slate-700/50 pt-2">
@@ -84,7 +84,10 @@ export const ProductCatalog = ({
       )}
 
       {/* Lista de Productos de la Categoría */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-4 p-4 lg:p-0">
+      <div 
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-4 p-4 lg:p-0"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {filteredProducts.map((product) => {
           const qty = getItemQuantity(product.id);
           const hasStock = product.stock !== null;
