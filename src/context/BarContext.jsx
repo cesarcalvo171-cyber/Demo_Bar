@@ -248,6 +248,21 @@ export const BarProvider = ({ children }) => {
     try {
       const isOccupied = items.length > 0;
 
+      // OPTIMISTIC UI UPDATE
+      setTables(prevTables => prevTables.map(t => {
+        if (t.id === tableId) {
+          return {
+            ...t,
+            status: isOccupied ? 'ocupada' : 'libre',
+            customerName: customerName,
+            assignedWaiterId: currentUser?.id,
+            items: items,
+            unprintedItems: unprintedItems || []
+          };
+        }
+        return t;
+      }));
+
       const { error: e1 } = await supabase.from('tables').upsert({
         id: tableId,
         name: tables.find(t => t.id === tableId)?.name || tableId,
@@ -280,7 +295,8 @@ export const BarProvider = ({ children }) => {
           window.alert("Error insertando nuevos pedidos: " + e3.message);
         }
       }
-      await fetchData();
+      // Background sync
+      fetchData();
     } catch (err) {
       console.error("updateTableOrder crash:", err);
       window.alert("Crash al guardar pedido: " + err.message);
@@ -294,6 +310,20 @@ export const BarProvider = ({ children }) => {
   const addBarAccount = async (customerName) => {
     try {
       const newBarId = `barra_${Date.now()}`;
+      
+      // OPTIMISTIC UI UPDATE
+      setTables(prev => [...prev, {
+        id: newBarId,
+        name: 'Barra',
+        status: 'ocupada',
+        customerName: customerName,
+        assignedWaiterId: currentUser?.id,
+        createdAt: new Date().toISOString(),
+        isBar: true,
+        items: [],
+        unprintedItems: []
+      }]);
+
       const { error } = await supabase.from('tables').insert({
         id: newBarId,
         name: 'Barra',
@@ -307,7 +337,8 @@ export const BarProvider = ({ children }) => {
         console.error("Error creating bar account:", error);
         window.alert("Error creando cuenta en barra: " + error.message);
       }
-      await fetchData();
+      // Background sync
+      fetchData();
       return newBarId;
     } catch (err) {
       window.alert("Crash al crear cuenta en barra: " + err.message);
