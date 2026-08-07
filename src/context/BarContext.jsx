@@ -295,8 +295,6 @@ export const BarProvider = ({ children }) => {
           window.alert("Error insertando nuevos pedidos: " + e3.message);
         }
       }
-      // Background sync
-      fetchData();
     } catch (err) {
       console.error("updateTableOrder crash:", err);
       window.alert("Crash al guardar pedido: " + err.message);
@@ -337,8 +335,6 @@ export const BarProvider = ({ children }) => {
         console.error("Error creating bar account:", error);
         window.alert("Error creando cuenta en barra: " + error.message);
       }
-      // Background sync
-      fetchData();
       return newBarId;
     } catch (err) {
       window.alert("Crash al crear cuenta en barra: " + err.message);
