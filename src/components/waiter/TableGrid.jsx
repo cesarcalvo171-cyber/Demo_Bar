@@ -30,8 +30,9 @@ export const TableGrid = () => {
   const [selectedTableId, setSelectedTableId] = useState(null);
   const selectedTable = tables.find(t => t.id === selectedTableId);
    // Contadores rápidos para la barra de estado
-  const occupiedTables = tables.filter(t => t.status === 'ocupada').length;
-  const pendingPaymentTables = tables.filter(t => t.status === 'pendiente_pago').length;
+  const occupiedTables = tables.filter(t => t.status === 'ocupada' && !t.isBar).length;
+  const pendingPaymentTables = tables.filter(t => t.status === 'pendiente_pago' && !t.isBar).length;
+  const barAccounts = tables.filter(t => t.isBar).length;
 
 
   return (
@@ -43,12 +44,8 @@ export const TableGrid = () => {
   
   {/* <div className="flex items-center gap-2">
     <span className="text-slate-900">
-      <LuLayoutPanelLeft className="w-14 h-14" />
-    </span>
-
-    <h2 className="text-[26px] font-serif font-semibold text-slate-900 m-0">
       Panel de Mesas
-    </h2>
+    </span>
   </div> */}
   
 
@@ -79,6 +76,15 @@ export const TableGrid = () => {
         </span>
         <span className="text-slate-300 font-serif text-[16px]">
           Por Cobrar: <strong>{pendingPaymentTables}</strong>
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1.5 ml-2 border-l border-slate-600 pl-4">
+        <span className="text-blue-400">
+          <IoMdTime className="w-5 h-5" />
+        </span>
+        <span className="text-slate-300 font-serif text-[16px]">
+          Cuentas en Barra: <strong>{barAccounts}</strong>
         </span>
       </div>
     </div>

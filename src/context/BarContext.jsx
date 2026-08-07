@@ -302,7 +302,18 @@ export const BarProvider = ({ children }) => {
   };
 
   const clearUnprintedItems = async (tableId) => {
-    await supabase.from('orders').update({ is_printed: true }).eq('table_id', tableId);
+    try {
+      // OPTIMISTIC UI UPDATE
+      setTables(prevTables => prevTables.map(t => {
+        if (t.id === tableId) {
+          return { ...t, unprintedItems: [] };
+        }
+        return t;
+      }));
+      await supabase.from('orders').update({ is_printed: true }).eq('table_id', tableId);
+    } catch (err) {
+      console.error("Error clearing unprinted items:", err);
+    }
   };
 
   const addBarAccount = async (customerName) => {
