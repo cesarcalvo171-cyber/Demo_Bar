@@ -245,32 +245,46 @@ export const BarProvider = ({ children }) => {
   }, []);
 
   const updateTableOrder = async (tableId, items, customerName = '', unprintedItems = null) => {
-    const isOccupied = items.length > 0;
+    try {
+      const isOccupied = items.length > 0;
 
-    // 1. Update table status (Upsert table FIRST to avoid foreign key violations)
-    await supabase.from('tables').upsert({
-      id: tableId,
-      name: tables.find(t => t.id === tableId)?.name || tableId,
-      status: isOccupied ? 'ocupada' : 'libre',
-      customer_name: customerName,
-      assigned_waiter_id: currentUser?.id,
-      created_at: isOccupied ? new Date().toISOString() : null
-    }, { onConflict: 'id' });
+      const { error: e1 } = await supabase.from('tables').upsert({
+        id: tableId,
+        name: tables.find(t => t.id === tableId)?.name || tableId,
+        status: isOccupied ? 'ocupada' : 'libre',
+        customer_name: customerName,
+        assigned_waiter_id: currentUser?.id,
+        created_at: isOccupied ? new Date().toISOString() : null
+      }, { onConflict: 'id' });
+      if (e1) {
+        console.error("Error upserting table:", e1);
+        window.alert("Error guardando mesa: " + e1.message);
+      }
 
-    // 2. Delete old orders
-    await supabase.from('orders').delete().eq('table_id', tableId);
-    
-    // 3. Insert new orders
-    if (isOccupied) {
-      const ordersToInsert = items.map(i => ({
-        table_id: tableId,
-        product_id: i.product.id,
-        quantity: i.quantity,
-        is_printed: unprintedItems ? !unprintedItems.find(u => u.product.id === i.product.id) : true
-      }));
-      await supabase.from('orders').insert(ordersToInsert);
+      const { error: e2 } = await supabase.from('orders').delete().eq('table_id', tableId);
+      if (e2) {
+        console.error("Error deleting old orders:", e2);
+        window.alert("Error borrando pedidos viejos: " + e2.message);
+      }
+      
+      if (isOccupied) {
+        const ordersToInsert = items.map(i => ({
+          table_id: tableId,
+          product_id: i.product.id,
+          quantity: i.quantity,
+          is_printed: unprintedItems ? !unprintedItems.find(u => u.product.id === i.product.id) : true
+        }));
+        const { error: e3 } = await supabase.from('orders').insert(ordersToInsert);
+        if (e3) {
+          console.error("Error inserting orders:", e3);
+          window.alert("Error insertando nuevos pedidos: " + e3.message);
+        }
+      }
+      await fetchData();
+    } catch (err) {
+      console.error("updateTableOrder crash:", err);
+      window.alert("Crash al guardar pedido: " + err.message);
     }
-    await fetchData();
   };
 
   const clearUnprintedItems = async (tableId) => {
@@ -278,18 +292,26 @@ export const BarProvider = ({ children }) => {
   };
 
   const addBarAccount = async (customerName) => {
-    const newBarId = `barra_${Date.now()}`;
-    await supabase.from('tables').insert({
-      id: newBarId,
-      name: 'Barra',
-      status: 'ocupada',
-      is_bar_account: true,
-      customer_name: customerName,
-      assigned_waiter_id: currentUser?.id,
-      created_at: new Date().toISOString()
-    });
-    await fetchData();
-    return newBarId;
+    try {
+      const newBarId = `barra_${Date.now()}`;
+      const { error } = await supabase.from('tables').insert({
+        id: newBarId,
+        name: 'Barra',
+        status: 'ocupada',
+        is_bar_account: true,
+        customer_name: customerName,
+        assigned_waiter_id: currentUser?.id,
+        created_at: new Date().toISOString()
+      });
+      if (error) {
+        console.error("Error creating bar account:", error);
+        window.alert("Error creando cuenta en barra: " + error.message);
+      }
+      await fetchData();
+      return newBarId;
+    } catch (err) {
+      window.alert("Crash al crear cuenta en barra: " + err.message);
+    }
   };
 
   const sendOrderToCashier = async (tableId, customerName) => {
