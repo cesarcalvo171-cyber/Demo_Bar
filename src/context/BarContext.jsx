@@ -224,17 +224,22 @@ export const BarProvider = ({ children }) => {
   useEffect(() => {
     fetchData();
 
+    let timeoutId;
+    const handleRealtimeChange = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        fetchData();
+      }, 500); // Debounce de 500ms para evitar múltiples peticiones
+    };
+
     // Setup Realtime for Tables and Orders
     const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => {
-        fetchData(); // Simplificación: recargar todo. En prod optimizar a mutar local.
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        fetchData();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, handleRealtimeChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, handleRealtimeChange)
       .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -265,13 +270,10 @@ export const BarProvider = ({ children }) => {
       }));
       await supabase.from('orders').insert(ordersToInsert);
     }
-    
-    fetchData(); // Refresh state immediately
   };
 
   const clearUnprintedItems = async (tableId) => {
     await supabase.from('orders').update({ is_printed: true }).eq('table_id', tableId);
-    fetchData();
   };
 
   const addBarAccount = async (customerName) => {
@@ -285,7 +287,6 @@ export const BarProvider = ({ children }) => {
       assigned_waiter_id: currentUser?.id,
       created_at: new Date().toISOString()
     });
-    fetchData();
     return newBarId;
   };
 
@@ -294,7 +295,6 @@ export const BarProvider = ({ children }) => {
       status: 'pendiente_pago',
       customer_name: customerName
     }).eq('id', tableId);
-    fetchData();
   };
 
   const payInvoice = async (tableId, paymentMethod, transactionId = '') => {
@@ -349,8 +349,6 @@ export const BarProvider = ({ children }) => {
       }).eq('id', tableId);
     }
     await supabase.from('orders').delete().eq('table_id', tableId);
-
-    fetchData();
   };
 
   const closeShift = async () => {

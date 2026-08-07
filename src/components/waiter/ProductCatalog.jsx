@@ -62,18 +62,18 @@ export const ProductCatalog = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1d27]">
+    <div className="flex flex-col h-full bg-white">
       {/* Botones de Categorías */}
       {search.trim() === "" && (
-        <div className="flex flex-wrap gap-2.5 mb-5 pb-4 border-b border-slate-700/50 pt-2">
+        <div className="flex flex-wrap gap-2.5 mb-5 pb-4 border-b border-slate-200 pt-2">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-xs md:text-sm transition-colors cursor-pointer border ${
                 selectedCategory === cat.id
-                  ? "bg-orange-300 text-[#1a1d24] border-orange-300 shadow-sm"
-                  : "bg-[#222533] text-slate-300 border-slate-700 hover:bg-slate-700"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
               }`}
             >
               {getCategoryIcon(cat.icon)}
@@ -94,14 +94,15 @@ export const ProductCatalog = ({
             <div
               key={product.id}
               onClick={() => !isOutOfStock && onSelectProduct(product)}
-              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative h-[300px] ${
+              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative h-48 sm:h-56 ${
                 isOutOfStock
-                  ? "bg-red-900/50 border-red-900/50 opacity-60 cursor-not-allowed"
-                  : "bg-[#191c25] border-slate-700/50 hover:border-slate-600 cursor-pointer shadow-sm"
+                  ? "bg-red-50 border-red-200 opacity-60 cursor-not-allowed"
+                  : "bg-white border-slate-200 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow-md"
               }`}
             >
               {/* Imagen y Precio */}
               <div className="relative h-[160px] w-full shrink-0 bg-[#222533]">
+              <div className="relative h-[160px] w-full shrink-0 bg-slate-100">
                 {product.image && (
                   <img
                     src={product.image}
@@ -109,7 +110,7 @@ export const ProductCatalog = ({
                     className="w-full h-full object-cover"
                   />
                 )}
-                <div className="absolute top-2 right-2 bg-[#1a1d27]/80 backdrop-blur-md text-orange-200 px-2 py-0.5 rounded text-xs font-bold tracking-wide border border-slate-600/50">
+                <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm backdrop-blur-sm z-10">
                   C${product.price.toFixed(2)}
                 </div>
               </div>
@@ -117,7 +118,7 @@ export const ProductCatalog = ({
               {/* Información y Acción */}
               <div className="p-3.5 flex flex-col flex-1 justify-between">
                 <div>
-                  <h4 className="font-semibold text-slate-100 text-[13px] leading-tight line-clamp-2">
+                  <h4 className="font-semibold text-slate-800 text-[13px] leading-tight line-clamp-2">
                     {product.name}
                   </h4>
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -125,14 +126,14 @@ export const ProductCatalog = ({
                       <span
                         className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
                           product.stock < 10
-                            ? "bg-orange-900/40 text-orange-400"
-                            : "bg-slate-700 text-slate-300"
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-slate-100 text-slate-600"
                         }`}
                       >
                         Stock: {product.stock}
                       </span>
                     ) : (
-                      <span className="text-[9px] px-2 py-0.5 rounded-sm font-bold bg-[#183a31] text-[#4ade80] border border-[#166534]">
+                      <span className="text-[9px] px-2 py-0.5 rounded-sm font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
                         Preparado
                       </span>
                     )}
@@ -144,8 +145,8 @@ export const ProductCatalog = ({
                     disabled={isOutOfStock}
                     className={`w-full text-xs font-semibold px-2 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors ${
                       isOutOfStock
-                        ? "bg-slate-800 text-slate-500"
-                        : "bg-[#2a2e40] text-slate-200 hover:bg-[#34394f]"
+                        ? "bg-slate-100 text-slate-400"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
                     {qty > 0 ? (
