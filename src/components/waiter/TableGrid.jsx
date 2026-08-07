@@ -84,10 +84,10 @@ export const TableGrid = () => {
     </div>
     
     <button
-      onClick={() => {
+      onClick={async () => {
         const customerName = prompt("Ingresa el nombre del cliente en barra:");
         if (customerName) {
-          const newId = addBarAccount(customerName);
+          const newId = await addBarAccount(customerName);
           setSelectedTableId(newId);
         }
       }}

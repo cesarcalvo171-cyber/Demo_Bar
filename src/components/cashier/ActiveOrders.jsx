@@ -15,10 +15,10 @@ export const ActiveOrders = () => {
   const activeTables = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago');
   const orderTableToEdit = tables.find(t => t.id === orderTableToEditId);
 
-  const handleCreateBarAccount = () => {
+  const handleCreateBarAccount = async () => {
     const customerName = prompt("Ingresa el nombre del cliente para la cuenta en barra:");
     if (customerName) {
-      const newId = addBarAccount(customerName);
+      const newId = await addBarAccount(customerName);
       setOrderTableToEditId(newId);
     }
   };

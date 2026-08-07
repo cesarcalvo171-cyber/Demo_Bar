@@ -70,7 +70,7 @@ export const BarProvider = ({ children }) => {
           return {
             id: p.id,
             name: p.name,
-            category: p.category_id?.toLowerCase(),
+            category: p.category_id,
             price: Number(p.price),
             cost: Number(p.cost),
             stock: p.stock !== null ? Number(p.stock) : null,
@@ -107,7 +107,7 @@ export const BarProvider = ({ children }) => {
                   name: pData?.name,
                   price: Number(pData?.price || 0),
                   cost: Number(pData?.cost || 0),
-                  category: pData?.category_id?.toLowerCase()
+                  category: pData?.category_id
                 },
                 quantity: o.quantity
               };
@@ -138,7 +138,7 @@ export const BarProvider = ({ children }) => {
               const pData = productsData.find(p => p.id === o.product_id);
               return {
                 product: {
-                  id: pData?.id, name: pData?.name, price: Number(pData?.price || 0), cost: Number(pData?.cost || 0), category: pData?.category_id?.toLowerCase()
+                  id: pData?.id, name: pData?.name, price: Number(pData?.price || 0), cost: Number(pData?.cost || 0), category: pData?.category_id
                 },
                 quantity: o.quantity
               };
