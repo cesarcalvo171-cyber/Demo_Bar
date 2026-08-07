@@ -154,9 +154,9 @@ export const OrderModal = ({ table, onClose }) => {
   
   
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-full">
+    <div className="flex flex-col lg:flex-row gap-4 h-full min-h-[500px]">
       {/* Columna Izquierda: Catálogo de Productos */}
-      <div className="flex-1 border-b lg:border-b-0 lg:border-r border-slate-200 lg:pr-6 flex flex-col overflow-hidden">
+      <div className="flex-1 border-b lg:border-b-0 lg:border-r border-slate-700/50 lg:pr-6 flex flex-col overflow-hidden">
         {errorMsg && (
           <div className="mb-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -171,7 +171,7 @@ export const OrderModal = ({ table, onClose }) => {
             placeholder="Buscar producto..."
             value={search}
             onChange={(e) => SetSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white"
           />
         </div>
         <ProductCatalog
@@ -184,24 +184,24 @@ export const OrderModal = ({ table, onClose }) => {
       </div>
 
       {/* Columna Derecha: Detalle de la Mesa y Pedido */}
-      <div className="w-full lg:w-[380px] flex flex-col justify-between bg-slate-50 p-5 rounded-r-xl border-l border-slate-200">
+      <div className="w-full lg:w-[380px] flex flex-col justify-between bg-[#191c25] p-5 rounded-r-xl border-l border-slate-700/50">
         <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex justify-between items-start pb-4 border-b border-slate-200 mb-4">
+          <div className="flex justify-between items-start pb-4 border-b border-slate-700/50 mb-4">
             <div>
-              <h3 className="font-bold text-slate-800 text-base m-0 mb-1">
+              <h3 className="font-bold text-slate-100 text-base m-0 mb-1">
                 {table.name}
               </h3>
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 m-0 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 m-0 flex-wrap">
                 Estado:
-                <span className="font-semibold text-slate-700 bg-slate-200 px-2 py-0.5 rounded border border-slate-300">
+                <span className="font-semibold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                   {items.length > 0 ? "Con pedido" : "Vacía"}
                 </span>
                 {table.assignedWaiterName && (
                   <span
                     className={`font-extrabold px-2 py-0.5 rounded border text-[10px] ${
                       isOwnerOrAdmin
-                        ? "bg-amber-100 text-amber-700 border-amber-200"
-                        : "bg-red-100 text-red-700 border-red-200"
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                        : "bg-red-500/20 text-red-300 border-red-500/30"
                     }`}
                   >
                     👤 {table.assignedWaiterName}
@@ -212,7 +212,7 @@ export const OrderModal = ({ table, onClose }) => {
             {items.length > 0 && isOwnerOrAdmin && (
               <button
                 onClick={handleClearTable}
-                className="text-xs text-red-500 hover:text-red-600 font-semibold cursor-pointer"
+                className="text-xs text-red-400 hover:text-red-300 font-semibold cursor-pointer"
               >
                 Cancelar
               </button>
@@ -221,7 +221,7 @@ export const OrderModal = ({ table, onClose }) => {
 
           <div className="mb-4">
             <div className="relative">
-              <UserCheck className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+              <UserCheck className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
               {/* Input para ingresar el nombre del cliente o referencia */}
               <input
                 type="text"
@@ -230,14 +230,14 @@ export const OrderModal = ({ table, onClose }) => {
                 onBlur={() => updateTableOrder(table.id, items, customerName)} //guardamos datos al terminar de escribir
                 onChange={(e) => setCustomerName(e.target.value)}
                 disabled={!isOwnerOrAdmin}
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+                className="w-full pl-8 pr-3 py-1.5 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors disabled:opacity-50"
               />
             </div>
           </div>
 
           {!isOwnerOrAdmin && (
-            <div className="mb-3 bg-red-50 border border-red-200 rounded-lg p-2.5 flex items-center gap-2 text-red-700 text-xs font-bold">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+            <div className="mb-3 bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 flex items-center gap-2 text-red-300 text-xs font-bold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
               <span>
                 Mesa atendida por {table.assignedWaiterName}. Solo lectura.
               </span>
@@ -247,7 +247,7 @@ export const OrderModal = ({ table, onClose }) => {
           {/* Lista de Items Seleccionados */}
           <div className="space-y-3 flex-1 overflow-y-auto pr-2 mb-4">
             {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-slate-400 gap-3 py-10">
+              <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 gap-3 py-10">
                 <Receipt className="w-12 h-12 opacity-50" />
                 <p className="text-sm">
                   No hay productos en esta mesa.
