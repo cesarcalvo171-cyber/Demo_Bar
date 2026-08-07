@@ -163,7 +163,7 @@ export const ExpensesManager = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           title="Registrar Nuevo Gasto"
-          maxWidth="max-w-md"
+          maxWidth="max-w-xl"
         >
           <Formik
             initialValues={{
@@ -198,34 +198,34 @@ export const ExpensesManager = () => {
             {({ isSubmitting, values, setFieldValue }) => (
               <Form className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Descripción:</label>
+                  <label className="block text-sm font-bold text-white mb-1">Descripción:</label>
                   <Field
                     type="text"
                     name="description"
                     placeholder="Ej. Compra de 5 Cajas de Cerveza, Recibo de Luz..."
-                    className="w-full p-3 border text-slate-900 border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full p-3 border text-white rounded-xl text-sm focus:ring-2 "
                   />
                   <ErrorMessage name="description" component="div" className="text-red-500 text-xs mt-1 font-semibold" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Monto (C$):</label>
+                    <label className="block text-sm font-bold text-white mb-1">Monto (C$):</label>
                     <Field
                       type="number"
                       step="0.01"
                       name="amount"
                       placeholder="0.00"
-                      className="w-full p-3 border border-slate-300 text-slate-900 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full p-3 border border-slate-300 text-white rounded-xl text-sm font-bold focus:ring-2 "
                     />
                     <ErrorMessage name="amount" component="div" className="text-red-500 text-xs mt-1 font-semibold" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Categoría:</label>
+                    <label className="block text-sm font-bold text-white mb-1">Categoría:</label>
                     <Field
                       as="select"
                       name="category"
-                      className="w-full p-3 border text-slate-900 border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                      className="w-full p-3 border text-white bg-slate-950 border-slate-300 rounded-xl text-sm focus:ring-2  "
                       onChange={(e) => {
                         setFieldValue('category', e.target.value);
                         // Auto check isPaid to false for services usually
@@ -246,7 +246,7 @@ export const ExpensesManager = () => {
 
                 <div className="flex items-center gap-2 mt-2">
                   <Field type="checkbox" name="isPaid" id="isPaid" className="w-4 h-4 text-blue-600 rounded border-gray-300" />
-                  <label htmlFor="isPaid" className="text-sm font-semibold text-slate-700 cursor-pointer">
+                  <label htmlFor="isPaid" className="text-sm font-semibold text-white cursor-pointer">
                     Este gasto ya fue pagado
                   </label>
                 </div>

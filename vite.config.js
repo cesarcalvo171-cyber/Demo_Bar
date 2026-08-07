@@ -14,23 +14,23 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'Demo Bar',
-        short_name: 'DemoBar',
-        description: 'Sistema de Punto de Venta y Gestión',
+        name: 'Moncho`s Bar',
+        short_name: 'Moncho`s Bar',
+        description: '',
         theme_color: '#0f172a', // bg-slate-900
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
-            src: '/favicon.svg',
+            src: 'image/png',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: '/favicon.svg',
+            src: '/logo.png',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/png'
           }
         ]
       }
