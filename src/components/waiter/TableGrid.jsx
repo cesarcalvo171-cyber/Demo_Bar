@@ -50,8 +50,8 @@ export const TableGrid = () => {
   
 
   {/* Resumen del estado actual del local */}
-  <div className="flex items-center justify-between w-full md:w-auto md:flex-1 gap-4 bg-slate-800 px-4 py-3 rounded-xl border border-slate-700 text-xs md:text-sm shadow-md">
-    <div className="flex flex-wrap gap-4">
+  <div className="flex flex-col md:flex-row md:items-center justify-between w-full md:w-auto md:flex-1 gap-4 bg-slate-800 px-4 py-3 rounded-xl border border-slate-700 text-xs md:text-sm shadow-md">
+    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 w-full md:w-auto">
       <div className="flex items-center gap-1.5">
         <span className="text-green-500">
            <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
@@ -79,7 +79,7 @@ export const TableGrid = () => {
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 ml-2 border-l border-slate-600 pl-4">
+      <div className="flex items-center gap-1.5 md:ml-2 md:border-l border-slate-600 md:pl-4">
         <span className="text-blue-400">
           <IoMdTime className="w-5 h-5" />
         </span>
