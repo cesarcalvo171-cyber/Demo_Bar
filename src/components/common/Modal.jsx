@@ -6,9 +6,9 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-5xl'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className={`bg-slate-950 rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col overflow-hidden border border-slate-200`}>
+      <div className={`bg-slate-950 rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col min-h-0 overflow-hidden border border-slate-200`}>
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-950">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-950 shrink-0">
           <h2 className="text-base font-black font-inter text-white m-0">{title}</h2>
           <button
             onClick={onClose}
@@ -19,7 +19,7 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-5xl'
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-hidden flex-1 flex flex-col bg-slate-950">
+        <div className="p-0 lg:p-6 overflow-hidden flex-1 flex flex-col min-h-0 bg-slate-950">
           {children}
         </div>
       </div>

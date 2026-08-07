@@ -84,7 +84,7 @@ export const ProductCatalog = ({
       )}
 
       {/* Lista de Productos de la Categoría */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 pr-2 custom-scrollbar pb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-4 p-4 lg:p-0">
         {filteredProducts.map((product) => {
           const qty = getItemQuantity(product.id);
           const hasStock = product.stock !== null;

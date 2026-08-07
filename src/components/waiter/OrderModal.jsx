@@ -156,10 +156,10 @@ export const OrderModal = ({ table, onClose }) => {
   
   
   return (
-    <div className="flex flex-col h-full min-h-[500px] relative">
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+    <div className="flex flex-col h-full min-h-[500px] min-h-0 relative">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
         {/* Columna Izquierda: Catálogo de Productos */}
-        <div className={`flex-1 lg:border-r border-slate-700/50 lg:pr-6 flex-col overflow-hidden pb-[70px] lg:pb-0 ${mobileView === 'catalog' ? 'flex' : 'hidden lg:flex'}`}>
+        <div className={`flex-1 lg:border-r border-slate-700/50 lg:pr-6 flex-col overflow-hidden min-h-0 pb-[70px] lg:pb-0 ${mobileView === 'catalog' ? 'flex' : 'hidden lg:flex'}`}>
         {errorMsg && (
           <div className="mb-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
