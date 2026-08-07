@@ -101,7 +101,6 @@ export const ProductCatalog = ({
               }`}
             >
               {/* Imagen y Precio */}
-              <div className="relative h-[160px] w-full shrink-0 bg-[#222533]">
               <div className="relative h-[160px] w-full shrink-0 bg-slate-100">
                 {product.image && (
                   <img
