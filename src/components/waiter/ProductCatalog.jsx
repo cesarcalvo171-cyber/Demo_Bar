@@ -94,7 +94,7 @@ export const ProductCatalog = ({
             <div
               key={product.id}
               onClick={() => !isOutOfStock && onSelectProduct(product)}
-              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative h-48 sm:h-56 ${
+              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative ${
                 isOutOfStock
                   ? "bg-red-50 border-red-200 opacity-60 cursor-not-allowed"
                   : "bg-white border-slate-200 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow-md"
