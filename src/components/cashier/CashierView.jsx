@@ -28,14 +28,16 @@ export const CashierView = () => {
         
        
         <div 
-          className={`relative shrink-0 flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out ${
-            isCollapsed ? 'w-[76px]' : 'w-64'
+          className={`relative shrink-0 flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out z-20 ${
+            isCollapsed ? 'w-0 sm:w-[76px] overflow-hidden' : 'w-64 absolute sm:relative h-full sm:h-auto shadow-2xl sm:shadow-none'
           }`}
         >
          
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-8 w-6 h-6 bg-white border border-slate-200 shadow-sm rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 cursor-pointer z-10"
+            className={`absolute top-8 w-6 h-6 bg-white border border-slate-200 shadow-sm rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 cursor-pointer z-30 transition-all ${
+              isCollapsed ? '-right-3 sm:-right-3 translate-x-full sm:translate-x-0' : '-right-3'
+            }`}
           >
             {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
           </button>
