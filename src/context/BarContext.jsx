@@ -270,6 +270,7 @@ export const BarProvider = ({ children }) => {
       }));
       await supabase.from('orders').insert(ordersToInsert);
     }
+    await fetchData();
   };
 
   const clearUnprintedItems = async (tableId) => {
@@ -287,6 +288,7 @@ export const BarProvider = ({ children }) => {
       assigned_waiter_id: currentUser?.id,
       created_at: new Date().toISOString()
     });
+    await fetchData();
     return newBarId;
   };
 
@@ -295,6 +297,7 @@ export const BarProvider = ({ children }) => {
       status: 'pendiente_pago',
       customer_name: customerName
     }).eq('id', tableId);
+    await fetchData();
   };
 
   const payInvoice = async (tableId, paymentMethod, transactionId = '') => {
@@ -349,6 +352,7 @@ export const BarProvider = ({ children }) => {
       }).eq('id', tableId);
     }
     await supabase.from('orders').delete().eq('table_id', tableId);
+    await fetchData();
   };
 
   const closeShift = async () => {
