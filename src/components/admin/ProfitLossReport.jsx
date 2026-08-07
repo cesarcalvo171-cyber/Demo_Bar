@@ -28,7 +28,7 @@ export const ProfitLossReport = () => {
 
   // 2. Costo de Mercadería Vendida (COGS)
   const totalCOGS = filteredInvoices.reduce((sum, inv) => {
-    const invoiceCost = inv.items.reduce((itemSum, item) => itemSum + ((item.cost || 0) * item.quantity), 0);
+    const invoiceCost = inv.items.reduce((itemSum, item) => itemSum + ((item.product?.cost || 0) * item.quantity), 0);
     return sum + invoiceCost;
   }, 0);
 
