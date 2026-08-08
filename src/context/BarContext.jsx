@@ -74,7 +74,7 @@ export const BarProvider = ({ children }) => {
             price: Number(p.price),
             cost: Number(p.cost),
             stock: p.stock !== null ? Number(p.stock) : null,
-            image: p.icon_path || imageDictionary[p.name] || '',
+            image: (p.icon_path && p.icon_path.startsWith('http')) ? p.icon_path : (imageDictionary[p.name] || ''),
             bundleItems: bundleItems?.length > 0 ? bundleItems : undefined
           };
         });
