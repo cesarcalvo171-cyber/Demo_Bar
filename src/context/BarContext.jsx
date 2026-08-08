@@ -74,7 +74,7 @@ export const BarProvider = ({ children }) => {
             price: Number(p.price),
             cost: Number(p.cost),
             stock: p.stock !== null ? Number(p.stock) : null,
-            image: imageDictionary[p.name] || '',
+            image: p.icon_path || imageDictionary[p.name] || '',
             bundleItems: bundleItems?.length > 0 ? bundleItems : undefined
           };
         });
@@ -485,9 +485,11 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
-    await supabase.from('products').insert({
-      name: newProd.name, category_id: newProd.category, price: newProd.price, cost: newProd.cost, stock: newProd.stock, image: imageUrl
+    const { error } = await supabase.from('products').insert({
+      name: newProd.name, category_id: newProd.category, price: newProd.price, cost: newProd.cost, stock: newProd.stock, icon_path: imageUrl
     });
+    if (error) console.error("Error inserting product:", error);
+    
     fetchData();
   };
 
@@ -497,9 +499,11 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
-    await supabase.from('products').update({
-      name: updatedProd.name, category_id: updatedProd.category, price: updatedProd.price, cost: updatedProd.cost, stock: updatedProd.stock, image: imageUrl
+    const { error } = await supabase.from('products').update({
+      name: updatedProd.name, category_id: updatedProd.category, price: updatedProd.price, cost: updatedProd.cost, stock: updatedProd.stock, icon_path: imageUrl
     }).eq('id', updatedProd.id);
+    if (error) console.error("Error updating product:", error);
+
     fetchData();
   };
 
