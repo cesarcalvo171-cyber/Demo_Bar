@@ -567,6 +567,25 @@ export const BarProvider = ({ children }) => {
     }
   };
 
+  // Función para eliminar mesas extras creadas dinámicamente
+  const deleteTable = async (tableId) => {
+    try {
+      const sTableId = String(tableId);
+      await supabase.from("orders").delete().eq("table_id", sTableId);
+      const { error } = await supabase.from("tables").delete().eq("id", sTableId);
+      if (error) {
+        console.error("Error deleting table:", error);
+        alert("Error eliminando mesa: " + error.message);
+        return;
+      }
+      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+      await fetchData(true);
+    } catch (err) {
+      console.error("Error al eliminar mesa extra:", err);
+      alert("Error al eliminar la mesa: " + err.message);
+    }
+  };
+
   const sendOrderToCashier = async (tableId, customerName) => {
     const sTableId = String(tableId);
     // OPTIMISTIC UI
@@ -976,6 +995,7 @@ export const BarProvider = ({ children }) => {
         loginMesero,
         logout,
         addNewTable,
+        deleteTable,
       }}
     >
       {children}

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Users, Clock, ShoppingBag } from 'lucide-react';
+import { Users, Clock, ShoppingBag, Trash2 } from 'lucide-react';
 import { MdOutlineEventAvailable } from "react-icons/md";
 import { MdEventBusy } from "react-icons/md";
 import { MdTableRestaurant, MdLocalBar } from "react-icons/md";
 import { IoMdTime } from "react-icons/io";
+import { useBar } from '../../context/BarContext';
 
 const TableIcon = (props) => (
   <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 55.2 55.2" {...props}>
@@ -18,10 +19,12 @@ const TableIcon = (props) => (
 );
 
 export const TableCard = ({ table, onClick }) => {
+  const { deleteTable } = useBar();
   const isOccupied = table.status === 'ocupada';
   const isPendingPayment = table.status === 'pendiente_pago';
   const isFree = table.status === 'libre';
   const isBar = table.isBar;
+  const isExtra = !table.isBar && parseInt(table.id, 10) > 10;
 
   const totalItems = table.items.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = table.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -46,11 +49,27 @@ export const TableCard = ({ table, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className={`p-5 rounded-sm border-t-4 shadow-sm transition-all transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between h-80 ${bgColor}`}
+      className={`p-5 rounded-sm border-t-4 shadow-sm transition-all transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between h-80 relative ${bgColor}`}
     >
-      <div className="flex flex-2 justify-center items-center gap-2">
-        {isBar && <MdLocalBar className="text-blue-700 w-6 h-6" />}
-        <span className="font-inter italic text-lg font-normal tracking-tight text-black">{table.name}</span>
+      <div className="flex flex-2 justify-between items-center w-full relative">
+        <div className="flex items-center justify-center gap-2 flex-1">
+          {isBar && <MdLocalBar className="text-blue-700 w-6 h-6" />}
+          <span className="font-inter italic text-lg font-bold tracking-tight text-black">{table.name}</span>
+        </div>
+        {isExtra && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`¿Deseas eliminar permanentemente la ${table.name}?`)) {
+                deleteTable(table.id);
+              }
+            }}
+            title="Eliminar mesa extra"
+            className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-500/20 transition-all cursor-pointer absolute right-0 top-0 active:scale-90"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="mt-4 mb-4 flex flex-col gap-2">

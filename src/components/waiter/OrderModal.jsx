@@ -22,8 +22,9 @@ export const OrderModal = ({ table, onClose }) => {
     sendOrderToCashier,
     cancelTableOrder,
     clearUnprintedItems,
+    deleteTable,
     currentUser,
-    exchangeRate
+    exchangeRate,
   } = useBar();
   const [selectedCategory, setSelectedCategory] = useState("comida");
   //Cconstante que contiene los items del pedido de la mesa, si no tiene items se inicializa como un array vacío
@@ -35,6 +36,7 @@ export const OrderModal = ({ table, onClose }) => {
   const [errorMsg, setErrorMsg] = useState("");
   const [search, SetSearch] = useState("");
   const [mobileView, setMobileView] = useState("catalog"); // "catalog" | "order"
+  const isExtra = !table.isBar && parseInt(table.id, 10) > 10;
 
   // Ambos roles tienen acceso total según lo solicitado por el usuario
   const isOwnerOrAdmin = true;
@@ -185,21 +187,36 @@ export const OrderModal = ({ table, onClose }) => {
                     {items.length > 0 ? "Con pedido" : "Vacía"}
                   </span>
                   {table.assignedWaiterName && (
-                    <span className="font-extrabold px-2 py-0.5 rounded border text-[10px] bg-amber-500/20 text-amber-300 border-amber-500/30">
-                      👤 {table.assignedWaiterName}
-                    </span>
-                  )}
-                </div>
+                  <span className="font-extrabold px-2 py-0.5 rounded border text-[10px] bg-amber-500/20 text-amber-300 border-amber-500/30">
+                    👤 {table.assignedWaiterName}
+                  </span>
+                )}
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {isExtra && (
+                <button
+                  onClick={() => {
+                    if (confirm(`¿Deseas eliminar permanentemente la ${table.name}?`)) {
+                      deleteTable(table.id);
+                      onClose();
+                    }
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 font-bold cursor-pointer py-1 px-2 rounded hover:bg-red-500/10 transition-colors"
+                >
+                  Eliminar Mesa
+                </button>
+              )}
               {items.length > 0 && (
                 <button
                   onClick={handleClearTable}
-                  className="text-xs text-red-400 hover:text-red-300 font-semibold cursor-pointer py-1 px-2 rounded hover:bg-red-500/10 transition-colors"
+                  className="text-xs text-slate-400 hover:text-slate-200 font-semibold cursor-pointer py-1 px-2 rounded hover:bg-slate-700/50 transition-colors"
                 >
-                  Cancelar
+                  Vaciar
                 </button>
               )}
             </div>
+          </div>
 
             <div className="mb-2.5">
               <div className="relative">
