@@ -460,16 +460,45 @@ export const BarProvider = ({ children }) => {
     fetchData();
   };
 
-  const addProduct = async (newProd) => {
+  const uploadImage = async (file) => {
+    if (!file) return null;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `product_images/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('products')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage.from('products').getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  const addProduct = async (newProd, imageFile) => {
+    let imageUrl = null;
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+    }
+
     await supabase.from('products').insert({
-      name: newProd.name, category_id: newProd.category, price: newProd.price, cost: newProd.cost, stock: newProd.stock
+      name: newProd.name, category_id: newProd.category, price: newProd.price, cost: newProd.cost, stock: newProd.stock, image: imageUrl
     });
     fetchData();
   };
 
-  const updateProduct = async (updatedProd) => {
+  const updateProduct = async (updatedProd, imageFile) => {
+    let imageUrl = updatedProd.image; // Keep existing
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+    }
+
     await supabase.from('products').update({
-      name: updatedProd.name, category_id: updatedProd.category, price: updatedProd.price, cost: updatedProd.cost, stock: updatedProd.stock
+      name: updatedProd.name, category_id: updatedProd.category, price: updatedProd.price, cost: updatedProd.cost, stock: updatedProd.stock, image: imageUrl
     }).eq('id', updatedProd.id);
     fetchData();
   };

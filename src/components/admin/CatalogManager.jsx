@@ -9,13 +9,19 @@ export const CatalogManager = () => {
   const { products, addProduct, updateProduct, deleteProduct } = useBar();
   const [editingProduct, setEditingProduct] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].id);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const handleEdit = (product) => {
     setEditingProduct(product);
+    setImageFile(null);
+    setImagePreview(product.image || null);
   };
 
   const handleCancelEdit = () => {
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const handleDelete = (id, name) => {
@@ -80,11 +86,13 @@ export const CatalogManager = () => {
               }
 
               if (editingProduct) {
-                updateProduct({ ...editingProduct, ...formattedValues });
+                updateProduct({ ...editingProduct, ...formattedValues }, imageFile);
                 setEditingProduct(null);
               } else {
-                addProduct(formattedValues);
+                addProduct(formattedValues, imageFile);
               }
+              setImageFile(null);
+              setImagePreview(null);
               resetForm();
             }}
           >
@@ -98,6 +106,45 @@ export const CatalogManager = () => {
 
               return (
                 <Form className="space-y-4">
+                  {/* Subida de Imagen */}
+                  <div className="flex flex-col items-center gap-3">
+                    {imagePreview ? (
+                      <div className="relative w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 overflow-hidden bg-slate-50 flex-shrink-0">
+                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => { setImageFile(null); setImagePreview(null); }}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-400">
+                        <Package className="w-8 h-8 mb-1 opacity-50" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Foto</span>
+                      </div>
+                    )}
+                    
+                    <div className="w-full">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Imagen del Producto (Opcional):</label>
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            setImageFile(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setImagePreview(reader.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Nombre del Producto:</label>
                     <Field
