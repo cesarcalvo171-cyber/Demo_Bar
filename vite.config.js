@@ -10,20 +10,28 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: {
-        enabled: true
+      workbox: {
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15MB limit
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        navigateFallbackDenylist: [/^\/api/, /^https:\/\/.*\.supabase\.co/],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkOnly'
+          }
+        ]
       },
       manifest: {
-        name: 'Moncho`s Bar',
-        short_name: 'Moncho`s Bar',
-        description: '',
-        theme_color: '#0f172a', // bg-slate-900
+        name: "Moncho's Bar",
+        short_name: "Moncho's Bar",
+        description: 'Punto de Venta Moncho Bar',
+        theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
-            src: 'image/png',
+            src: '/logo.png',
             sizes: '192x192',
             type: 'image/png'
           },
