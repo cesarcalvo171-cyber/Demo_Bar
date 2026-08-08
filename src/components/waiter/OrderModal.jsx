@@ -36,27 +36,14 @@ export const OrderModal = ({ table, onClose }) => {
   const [search, SetSearch] = useState("");
   const [mobileView, setMobileView] = useState("catalog"); // "catalog" | "order"
 
-  // Validar si el usuario activo es el mesero que abrió la mesa, si es Administrador, o si es cuenta de barra
-  const isOwnerOrAdmin =
-    currentUser?.role === "admin" ||
-    table.isBar ||
-    !table.assignedWaiterId ||
-    table.assignedWaiterId === currentUser?.id;
+  // Ambos roles tienen acceso total según lo solicitado por el usuario
+  const isOwnerOrAdmin = true;
 
-  // Agregar producto y guardar en tiempo real
   // Agregar producto y guardar en tiempo real
   const handleAddProduct = (product) => {
-    if (!isOwnerOrAdmin) {
-      setErrorMsg(
-        `Mesa atendida por ${table.assignedWaiterName}. No tienes permisos.`,
-      );
-      setTimeout(() => setErrorMsg(""), 4000);
-      return;
-    }
-
     let newItems = [...items];
     const existingIndex = newItems.findIndex(
-      (i) => i.product.id === product.id,
+      (i) => String(i.product.id) === String(product.id),
     );
 
     if (existingIndex >= 0) {
@@ -75,7 +62,7 @@ export const OrderModal = ({ table, onClose }) => {
 
     // Lógica para la Comanda (elementos sin imprimir)
     let newUnprinted = [...unprintedItems];
-    const existingUnprinted = newUnprinted.findIndex((i) => i.product.id === product.id);
+    const existingUnprinted = newUnprinted.findIndex((i) => String(i.product.id) === String(product.id));
     if (existingUnprinted >= 0) {
       newUnprinted[existingUnprinted] = { ...newUnprinted[existingUnprinted], quantity: newUnprinted[existingUnprinted].quantity + 1 };
     } else {
@@ -90,7 +77,7 @@ export const OrderModal = ({ table, onClose }) => {
   const handleQuantity = (productId, delta) => {
     let newItems = items
       .map((i) => {
-        if (i.product.id === productId) {
+        if (String(i.product.id) === String(productId)) {
           return { ...i, quantity: i.quantity + delta };
         }
         return i;
@@ -99,7 +86,7 @@ export const OrderModal = ({ table, onClose }) => {
 
     let newUnprinted = unprintedItems
       .map((i) => {
-        if (i.product.id === productId) {
+        if (String(i.product.id) === String(productId)) {
           return { ...i, quantity: Math.max(0, i.quantity + delta) };
         }
         return i;
@@ -112,7 +99,7 @@ export const OrderModal = ({ table, onClose }) => {
 
   const calculateTotal = () => {
     return items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
+      (sum, item) => sum + (item.product?.price || 0) * item.quantity,
       0,
     );
   };
@@ -152,8 +139,6 @@ export const OrderModal = ({ table, onClose }) => {
       onClose();
     }
   };
- 
-  
   
   return (
     <div className="flex flex-col h-full min-h-[500px] min-h-0 relative">
@@ -187,9 +172,9 @@ export const OrderModal = ({ table, onClose }) => {
       </div>
 
       {/* Columna Derecha: Detalle de la Mesa y Pedido */}
-      <div className={`w-full lg:w-[380px] flex-col bg-[#191c25] p-5 rounded-t-2xl lg:rounded-t-none lg:rounded-r-xl pb-[90px] lg:pb-5 h-full ${mobileView === 'order' ? 'flex' : 'hidden lg:flex'}`}>
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex justify-between items-start pb-4 border-b border-slate-700/50 mb-4">
+      <div className={`w-full lg:w-[380px] flex-col bg-[#191c25] p-4 lg:p-5 rounded-t-2xl lg:rounded-t-none lg:rounded-r-xl h-full min-h-0 ${mobileView === 'order' ? 'flex' : 'hidden lg:flex'}`}>
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="flex justify-between items-start pb-3 border-b border-slate-700/50 mb-3 shrink-0">
             <div>
               <h3 className="font-bold text-slate-100 text-base m-0 mb-1">
                 {table.name}
@@ -200,19 +185,13 @@ export const OrderModal = ({ table, onClose }) => {
                   {items.length > 0 ? "Con pedido" : "Vacía"}
                 </span>
                 {table.assignedWaiterName && (
-                  <span
-                    className={`font-extrabold px-2 py-0.5 rounded border text-[10px] ${
-                      isOwnerOrAdmin
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                        : "bg-red-500/20 text-red-300 border-red-500/30"
-                    }`}
-                  >
+                  <span className="font-extrabold px-2 py-0.5 rounded border text-[10px] bg-amber-500/20 text-amber-300 border-amber-500/30">
                     👤 {table.assignedWaiterName}
                   </span>
                 )}
               </div>
             </div>
-            {items.length > 0 && isOwnerOrAdmin && (
+            {items.length > 0 && (
               <button
                 onClick={handleClearTable}
                 className="text-xs text-red-400 hover:text-red-300 font-semibold cursor-pointer"
@@ -222,7 +201,7 @@ export const OrderModal = ({ table, onClose }) => {
             )}
           </div>
 
-          <div className="mb-4">
+          <div className="mb-3 shrink-0">
             <div className="relative">
               <UserCheck className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
               {/* Input para ingresar el nombre del cliente o referencia */}
@@ -230,79 +209,67 @@ export const OrderModal = ({ table, onClose }) => {
                 type="text"
                 placeholder="Referencia o Cliente (Ej. Juan Pérez)"
                 value={customerName}
-                onBlur={() => updateTableOrder(table.id, items, customerName)} //guardamos datos al terminar de escribir
+                onBlur={() => updateTableOrder(table.id, items, customerName)}
                 onChange={(e) => setCustomerName(e.target.value)}
-                disabled={!isOwnerOrAdmin}
-                className="w-full pl-8 pr-3 py-1.5 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors disabled:opacity-50"
+                className="w-full pl-8 pr-3 py-1.5 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors"
               />
             </div>
           </div>
 
-          {!isOwnerOrAdmin && (
-            <div className="mb-3 bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 flex items-center gap-2 text-red-300 text-xs font-bold">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-              <span>
-                Mesa atendida por {table.assignedWaiterName}. Solo lectura.
-              </span>
-            </div>
-          )}
-
-          {/* Lista de Items Seleccionados */}
-          <div className="space-y-3 flex-1 overflow-y-auto pr-2 mb-4">
+          {/* Lista de Items Seleccionados con Touch Momentum Scroll */}
+          <div 
+            className="space-y-2.5 flex-1 overflow-y-auto pr-1 mb-2 min-h-0 touch-pan-y custom-scrollbar"
+            style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+          >
             {items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 gap-3 py-10">
-                <Receipt className="w-12 h-12 opacity-50" />
-                <p className="text-sm">
+              <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 gap-3 py-8">
+                <Receipt className="w-10 h-10 opacity-50" />
+                <p className="text-xs leading-relaxed">
                   No hay productos en esta mesa.
                   <br />
-                  Haz clic en los productos a la
+                  Toca los productos del catálogo
                   <br />
-                  izquierda para agregar.
+                  para agregarlos aquí.
                 </p>
               </div>
             ) : (
               items.map((item) => (
                 <div
-                  key={item.product.id}
+                  key={item.product?.id || Math.random()}
                   className="bg-[#222533] p-2.5 rounded-lg border border-slate-700/50 flex flex-col gap-2"
                 >
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-slate-100 text-sm m-0 leading-tight">
-                      {item.product.name}
+                      {item.product?.name || 'Producto'}
                     </p>
                     <p className="text-slate-400 text-sm font-semibold m-0">
-                      C${item.product.price.toFixed(2)}
+                      C${((item.product?.price || 0) * item.quantity).toFixed(2)}
                     </p>
                   </div>
                   <div className="flex items-center justify-between mt-1">
+                    <span className="text-[11px] text-slate-400">
+                      C${(item.product?.price || 0).toFixed(2)} c/u
+                    </span>
                     <div className="flex items-center bg-[#15171e] rounded-md border border-slate-700">
-                      {isOwnerOrAdmin ? (
-                        <>
-                          <button
-                            onClick={() => handleQuantity(item.product.id, -1)}
-                            className="px-2.5 py-1.5 hover:bg-slate-800 rounded-l-md cursor-pointer text-slate-400 transition-colors"
-                          >
-                            {item.quantity === 1 ? (
-                              <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                            ) : (
-                              <Minus className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                          <span className="font-bold text-slate-200 w-8 text-center text-sm">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => handleQuantity(item.product.id, 1)}
-                            className="px-2.5 py-1.5 hover:bg-slate-800 rounded-r-md cursor-pointer text-slate-400 transition-colors"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="font-bold text-slate-300 px-3 py-1 text-xs">
-                          Cant: {item.quantity}
-                        </span>
-                      )}
+                      <button
+                        onClick={() => handleQuantity(item.product.id, -1)}
+                        className="px-2.5 py-1.5 hover:bg-slate-800 rounded-l-md cursor-pointer text-slate-400 transition-colors active:bg-slate-700"
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        ) : (
+                          <Minus className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <span className="font-bold text-slate-200 w-8 text-center text-sm">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => handleQuantity(item.product.id, 1)}
+                        className="px-2.5 py-1.5 hover:bg-slate-800 rounded-r-md cursor-pointer text-slate-400 transition-colors active:bg-slate-700"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -311,9 +278,9 @@ export const OrderModal = ({ table, onClose }) => {
           </div>
         </div>
 
-        {/* Resumen Total y Acciones */}
-        <div className="border-t border-slate-700/50 pt-4 mt-auto">
-          <div className="flex justify-between items-center mb-5">
+        {/* Resumen Total y Acciones Fijas Abajo */}
+        <div className="border-t border-slate-700/50 pt-3 mt-auto shrink-0 pb-20 lg:pb-0">
+          <div className="flex justify-between items-center mb-3">
             <span className="font-bold text-slate-400 text-xs tracking-wider">
               TOTAL:
             </span>
@@ -324,54 +291,48 @@ export const OrderModal = ({ table, onClose }) => {
               </span>
             </div>
             <div className="text-slate-400 text-xs font-bold mt-0.5">
-              (US$ {(calculateTotal() / exchangeRate).toFixed(2)})
+              (US$ {(calculateTotal() / (exchangeRate || 36.62)).toFixed(2)})
             </div>
           </div>
 
-          {!isOwnerOrAdmin ? (
-            <div className="bg-slate-800 p-3 rounded-lg text-center text-xs text-slate-400 font-semibold border border-slate-700">
-              🔒 Esta mesa pertenece a {table.assignedWaiterName}. Solo el
-              titular o un Administrador pueden modificar el pedido.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                disabled={unprintedItems.length === 0}
-                onClick={() => setShowComanda(true)}
-                className="w-full bg-slate-900 text-yellow-500 font-bold py-3 rounded-lg text-sm hover:bg-slate-800 border border-slate-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-sm relative"
-              >
-                Imprimir Comanda
-                {unprintedItems.length > 0 && (
-                  <span className="absolute right-3 bg-yellow-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">
-                    {unprintedItems.length}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                disabled={items.length === 0}
-                onClick={() => setShowPreview(true)}
-                className="w-full bg-[#1e293b] text-slate-300 font-bold py-3 rounded-lg text-sm hover:bg-[#334155] border border-slate-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-              >
-                <Printer className="w-4 h-4" /> Imprimir Pre-cuenta
-              </button>
-            </div>
-          )}
+          {/* Botones de Acción Disponibles para Ambos Roles */}
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={unprintedItems.length === 0}
+              onClick={() => setShowComanda(true)}
+              className="w-full bg-slate-900 text-yellow-500 font-bold py-2.5 rounded-lg text-sm hover:bg-slate-800 border border-slate-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-sm relative active:scale-[0.99]"
+            >
+              Imprimir Comanda
+              {unprintedItems.length > 0 && (
+                <span className="absolute right-3 bg-yellow-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {unprintedItems.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={items.length === 0}
+              onClick={() => setShowPreview(true)}
+              className="w-full bg-[#1e293b] text-slate-200 font-bold py-2.5 rounded-lg text-sm hover:bg-[#334155] border border-slate-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99]"
+            >
+              <Printer className="w-4 h-4" /> Imprimir Pre-cuenta / Factura
+            </button>
+          </div>
         </div>
       </div>
       </div>
 
       {/* Botón flotante para cambiar de vista en móvil */}
-      <div className="lg:hidden absolute bottom-0 left-0 right-0 p-4 bg-slate-900 border-t border-slate-800 shrink-0 z-10 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.3)]">
+      <div className="lg:hidden absolute bottom-0 left-0 right-0 p-3 bg-slate-900 border-t border-slate-800 shrink-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
         <button
           onClick={() => setMobileView(v => v === 'catalog' ? 'order' : 'catalog')}
-          className={`w-full py-3.5 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-colors ${mobileView === 'catalog' ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-700 hover:bg-slate-600'}`}
+          className={`w-full py-3 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-colors active:scale-[0.99] ${mobileView === 'catalog' ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-700 hover:bg-slate-600'}`}
         >
           {mobileView === 'catalog' ? (
             <>
-              Ver Comanda ({items.reduce((sum, i) => sum + i.quantity, 0)} items)
-              <span className="bg-indigo-800 px-3 py-1 rounded-full text-xs shadow-inner">
+              Ver Pedido ({items.reduce((sum, i) => sum + i.quantity, 0)} items)
+              <span className="bg-indigo-800 px-3 py-0.5 rounded-full text-xs shadow-inner">
                 C${calculateTotal().toFixed(2)}
               </span>
             </>
