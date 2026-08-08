@@ -542,7 +542,7 @@ export const INITIAL_PRODUCTS = [
 
 // Generar 10 mesas iniciales
 export const INITIAL_TABLES = Array.from({ length: 10 }, (_, index) => ({
-  id: index + 1,
+  id: String(index + 1),
   name: `Mesa ${index + 1}`,
   status: "libre",
   customerName: "",
