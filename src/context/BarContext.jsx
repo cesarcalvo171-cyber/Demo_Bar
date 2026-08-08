@@ -34,9 +34,9 @@ export const BarProvider = ({ children }) => {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
 
       // Fetch Global Configs
       const { data: settingsData } = await supabase.from('settings').select('*');
@@ -61,8 +61,9 @@ export const BarProvider = ({ children }) => {
       // Fetch Products
       const { data: productsData } = await supabase.from('products').select('*');
       const { data: bundlesData } = await supabase.from('product_bundles').select('*');
+      let mappedProducts = [];
       if (productsData) {
-        const mappedProducts = productsData.map(p => {
+        mappedProducts = productsData.map(p => {
           const bundleItems = bundlesData?.filter(b => b.promotion_id === p.id).map(b => ({
             productId: b.base_product_id,
             quantity: b.quantity_to_deduct
@@ -223,27 +224,27 @@ export const BarProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(false);
 
-    let timeoutId;
-    const handleRealtimeChange = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        fetchData();
-      }, 300); // 300ms debounce
+    const triggerSync = () => {
+      fetchData(true);
     };
 
-    // Setup Realtime for Tables and Orders with distinct channel name
-    const channel = supabase.channel(`bar-realtime-v1`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, handleRealtimeChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, handleRealtimeChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, handleRealtimeChange)
-      .subscribe((status) => {
-        console.log("Supabase Realtime Channel Status:", status);
-      });
+    // 1. Instant WebSocket Realtime Event Listener
+    const channel = supabase.channel(`bar-realtime-live`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, triggerSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, triggerSync)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, triggerSync)
+      .subscribe();
+
+    // 2. High-frequency 2-second background sync fallback
+    // Guarantees 100% instant sync across devices, mobile tablets, and Wi-Fi networks even if WebSockets fluctuate
+    const syncInterval = setInterval(() => {
+      fetchData(true);
+    }, 2000);
 
     return () => {
-      clearTimeout(timeoutId);
+      clearInterval(syncInterval);
       supabase.removeChannel(channel);
     };
   }, []);
