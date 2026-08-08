@@ -42,12 +42,10 @@ export const CashierView = () => {
 
           <div className="p-4 flex flex-col h-full">
             {/* Logo Simulado */}
-            <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
-              <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
-                <img src={logo} alt="Moncho Bar" className="w-full h-full object-cover" />
-              </div>
+              <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
+              
               {!isCollapsed && (
-                <span className="ml-3 font-black text-slate-800 text-lg uppercase tracking-tight truncate">Moncho Bar</span>
+                <span className=" bg-gradient-to-r from-yellow-900 bg-yellow-600 bg-clip-text text-transparent ml-1 font-black  text-lg  italic tracking-tight ">Zorix Pos</span>
               )}
             </div>
 

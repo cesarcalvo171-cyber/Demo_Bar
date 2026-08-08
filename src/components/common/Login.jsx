@@ -49,6 +49,7 @@ export const Login = () => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sans ">
       {/* Card principal del login */}
       <div className="bg-slate-950 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
@@ -164,12 +165,22 @@ export const Login = () => {
               </button>
             </div>
           </form>
+
         )}
       </div>
+     
 
       </div>
       
-     
+        
+      
+      
     </div>
+   
+
+      
+    </>
+    
+    
   );
 };

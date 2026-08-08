@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
-import { INITIAL_PRODUCTS, INITIAL_TABLES } from '../mock/initialData';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
+import { INITIAL_PRODUCTS, INITIAL_TABLES } from "../mock/initialData";
 
 const BarContext = createContext();
-const SESSION_KEY = 'bar_active_session_v1';
+const SESSION_KEY = "bar_active_session_v1";
 
 const imageDictionary = INITIAL_PRODUCTS.reduce((acc, p) => {
   acc[p.name] = p.image;
@@ -19,9 +19,9 @@ export const BarProvider = ({ children }) => {
       return null;
     }
   });
-  
-  const [currentRole, setCurrentRole] = useState(currentUser?.role || 'mesero');
-  
+
+  const [currentRole, setCurrentRole] = useState(currentUser?.role || "mesero");
+
   const [users, setUsers] = useState([]);
   const [tables, setTables] = useState(INITIAL_TABLES);
   const [products, setProducts] = useState([]);
@@ -39,35 +39,45 @@ export const BarProvider = ({ children }) => {
       if (!silent) setIsLoading(true);
 
       // Fetch Global Configs
-      const { data: settingsData } = await supabase.from('settings').select('*');
+      const { data: settingsData } = await supabase
+        .from("settings")
+        .select("*");
       if (settingsData) {
-        const rate = settingsData.find(s => s.key === 'exchange_rate');
+        const rate = settingsData.find((s) => s.key === "exchange_rate");
         if (rate) setExchangeRate(rate.value);
       }
 
       // Fetch Users
-      const { data: usersData } = await supabase.from('users').select('*');
+      const { data: usersData } = await supabase.from("users").select("*");
       if (usersData) {
-        setUsers(usersData.map(u => ({
-          id: u.id,
-          name: u.name,
-          username: u.username,
-          password: u.password_hash,
-          role: u.role,
-          active: u.is_active
-        })));
+        setUsers(
+          usersData.map((u) => ({
+            id: u.id,
+            name: u.name,
+            username: u.username,
+            password: u.password_hash,
+            role: u.role,
+            active: u.is_active,
+          })),
+        );
       }
 
       // Fetch Products
-      const { data: productsData } = await supabase.from('products').select('*');
-      const { data: bundlesData } = await supabase.from('product_bundles').select('*');
+      const { data: productsData } = await supabase
+        .from("products")
+        .select("*");
+      const { data: bundlesData } = await supabase
+        .from("product_bundles")
+        .select("*");
       let mappedProducts = [];
       if (productsData) {
-        mappedProducts = productsData.map(p => {
-          const bundleItems = bundlesData?.filter(b => b.promotion_id === p.id).map(b => ({
-            productId: b.base_product_id,
-            quantity: b.quantity_to_deduct
-          }));
+        mappedProducts = productsData.map((p) => {
+          const bundleItems = bundlesData
+            ?.filter((b) => b.promotion_id === p.id)
+            .map((b) => ({
+              productId: b.base_product_id,
+              quantity: b.quantity_to_deduct,
+            }));
           return {
             id: p.id,
             name: p.name,
@@ -75,102 +85,199 @@ export const BarProvider = ({ children }) => {
             price: Number(p.price),
             cost: Number(p.cost),
             stock: p.stock !== null ? Number(p.stock) : null,
-            image: (p.icon_path && p.icon_path.startsWith('http')) ? p.icon_path : (imageDictionary[p.name] || ''),
-            bundleItems: bundleItems?.length > 0 ? bundleItems : undefined
+            image:
+              p.icon_path && p.icon_path.startsWith("http")
+                ? p.icon_path
+                : imageDictionary[p.name] || "",
+            bundleItems: bundleItems?.length > 0 ? bundleItems : undefined,
           };
         });
         setProducts(mappedProducts);
       }
 
       // Fetch Tables & Orders
-      const { data: tablesData } = await supabase.from('tables').select('*');
-      const { data: ordersData } = await supabase.from('orders').select('*');
-      
+      const { data: tablesData } = await supabase.from("tables").select("*");
+      const { data: ordersData } = await supabase.from("orders").select("*");
+
       if (tablesData && productsData) {
         // Assemble initial tables array with their orders
-        let newTables = INITIAL_TABLES.map(initTable => {
-          const dbTable = tablesData.find(t => String(t.id) === String(initTable.id));
+        let newTables = INITIAL_TABLES.map((initTable) => {
+          const dbTable = tablesData.find(
+            (t) => String(t.id) === String(initTable.id),
+          );
           if (!dbTable) return initTable;
-          
-          const tableOrders = ordersData?.filter(o => String(o.table_id) === String(dbTable.id)) || [];
-          
+
+          const tableOrders =
+            ordersData?.filter(
+              (o) => String(o.table_id) === String(dbTable.id),
+            ) || [];
+
           return {
             ...initTable,
             id: String(initTable.id),
             status: dbTable.status,
-            customerName: dbTable.customer_name || '',
+            customerName: dbTable.customer_name || "",
             assignedWaiterId: dbTable.assigned_waiter_id,
             createdAt: dbTable.created_at,
-            items: tableOrders.map(o => {
-              const pData = productsData.find(p => String(p.id) === String(o.product_id));
+            items: tableOrders.map((o) => {
+              const pData = productsData.find(
+                (p) => String(p.id) === String(o.product_id),
+              );
               return {
                 product: {
                   id: pData?.id,
                   name: pData?.name,
                   price: Number(pData?.price || 0),
                   cost: Number(pData?.cost || 0),
-                  category: pData?.category_id
+                  category: pData?.category_id,
                 },
-                quantity: o.quantity
+                quantity: o.quantity,
               };
             }),
-            unprintedItems: tableOrders.filter(o => !o.is_printed).map(o => {
-              const pData = productsData.find(p => String(p.id) === String(o.product_id));
-              return {
-                product: { id: pData?.id, name: pData?.name },
-                quantity: o.quantity
-              };
-            })
+            unprintedItems: tableOrders
+              .filter((o) => !o.is_printed)
+              .map((o) => {
+                const pData = productsData.find(
+                  (p) => String(p.id) === String(o.product_id),
+                );
+                return {
+                  product: { id: pData?.id, name: pData?.name },
+                  quantity: o.quantity,
+                };
+              }),
           };
         });
 
         // Add dynamically created bar accounts
-        const barAccounts = tablesData.filter(t => t.is_bar_account);
+        const barAccounts = tablesData.filter((t) => t.is_bar_account);
         for (const barAcc of barAccounts) {
-          const tableOrders = ordersData?.filter(o => String(o.table_id) === String(barAcc.id)) || [];
+          const tableOrders =
+            ordersData?.filter(
+              (o) => String(o.table_id) === String(barAcc.id),
+            ) || [];
           newTables.push({
             id: String(barAcc.id),
             name: barAcc.name,
             status: barAcc.status,
-            customerName: barAcc.customer_name || '',
+            customerName: barAcc.customer_name || "",
             assignedWaiterId: barAcc.assigned_waiter_id,
             createdAt: barAcc.created_at,
             isBar: true,
-            items: tableOrders.map(o => {
-              const pData = productsData.find(p => String(p.id) === String(o.product_id));
+            items: tableOrders.map((o) => {
+              const pData = productsData.find(
+                (p) => String(p.id) === String(o.product_id),
+              );
               return {
                 product: {
-                  id: pData?.id, name: pData?.name, price: Number(pData?.price || 0), cost: Number(pData?.cost || 0), category: pData?.category_id
+                  id: pData?.id,
+                  name: pData?.name,
+                  price: Number(pData?.price || 0),
+                  cost: Number(pData?.cost || 0),
+                  category: pData?.category_id,
                 },
-                quantity: o.quantity
+                quantity: o.quantity,
               };
             }),
-            unprintedItems: tableOrders.filter(o => !o.is_printed).map(o => {
-              const pData = productsData.find(p => String(p.id) === String(o.product_id));
-              return { product: { id: pData?.id, name: pData?.name }, quantity: o.quantity };
-            })
+            unprintedItems: tableOrders
+              .filter((o) => !o.is_printed)
+              .map((o) => {
+                const pData = productsData.find(
+                  (p) => String(p.id) === String(o.product_id),
+                );
+                return {
+                  product: { id: pData?.id, name: pData?.name },
+                  quantity: o.quantity,
+                };
+              }),
           });
         }
+
+        // Add extra normal tables created dynamically (e.g. Mesa 11, Mesa 12)
+        const extraTables = tablesData.filter(
+          (t) => !t.is_bar_account && !INITIAL_TABLES.some((init) => String(init.id) === String(t.id))
+        );
+        for (const extra of extraTables) {
+          const tableOrders =
+            ordersData?.filter(
+              (o) => String(o.table_id) === String(extra.id),
+            ) || [];
+          newTables.push({
+            id: String(extra.id),
+            name: extra.name || `Mesa ${extra.id}`,
+            status: extra.status || "libre",
+            customerName: extra.customer_name || "",
+            assignedWaiterId: extra.assigned_waiter_id,
+            createdAt: extra.created_at,
+            isBar: false,
+            items: tableOrders.map((o) => {
+              const pData = productsData.find(
+                (p) => String(p.id) === String(o.product_id),
+              );
+              return {
+                product: {
+                  id: pData?.id,
+                  name: pData?.name,
+                  price: Number(pData?.price || 0),
+                  cost: Number(pData?.cost || 0),
+                  category: pData?.category_id,
+                },
+                quantity: o.quantity,
+              };
+            }),
+            unprintedItems: tableOrders
+              .filter((o) => !o.is_printed)
+              .map((o) => {
+                const pData = productsData.find(
+                  (p) => String(p.id) === String(o.product_id),
+                );
+                return {
+                  product: { id: pData?.id, name: pData?.name },
+                  quantity: o.quantity,
+                };
+              }),
+          });
+        }
+
+        // Sort tables numerically so Mesa 1, Mesa 2, ... Mesa 11, Mesa 12 are in order
+        newTables.sort((a, b) => {
+          if (a.isBar && !b.isBar) return 1;
+          if (!a.isBar && b.isBar) return -1;
+          const numA = parseInt(a.id, 10);
+          const numB = parseInt(b.id, 10);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return a.name.localeCompare(b.name);
+        });
+
         setTables(newTables);
       }
 
       // Fetch Shifts & Financials
-      const { data: shiftsData } = await supabase.from('shifts').select('*').order('opened_at', { ascending: false });
+      const { data: shiftsData } = await supabase
+        .from("shifts")
+        .select("*")
+        .order("opened_at", { ascending: false });
       if (shiftsData && shiftsData.length > 0) {
-        const activeShift = shiftsData.find(s => !s.closed_at);
+        const activeShift = shiftsData.find((s) => !s.closed_at);
         if (activeShift) {
           setCurrentShiftId(activeShift.id);
           setShiftStartTime(activeShift.opened_at);
         }
 
         // Fetch all invoices
-        const { data: invData } = await supabase.from('invoices').select('*');
-        const { data: invItemsData } = await supabase.from('invoice_items').select('*');
-        
-        const allMappedInvoices = (invData || []).map(inv => {
-          const items = (invItemsData || []).filter(i => i.invoice_id === inv.id).map(i => ({
-            name: i.product_name, quantity: i.quantity, price: Number(i.price_at_sale), cost: Number(i.cost_at_sale)
-          }));
+        const { data: invData } = await supabase.from("invoices").select("*");
+        const { data: invItemsData } = await supabase
+          .from("invoice_items")
+          .select("*");
+
+        const allMappedInvoices = (invData || []).map((inv) => {
+          const items = (invItemsData || [])
+            .filter((i) => i.invoice_id === inv.id)
+            .map((i) => ({
+              name: i.product_name,
+              quantity: i.quantity,
+              price: Number(i.price_at_sale),
+              cost: Number(i.cost_at_sale),
+            }));
           return {
             id: inv.id,
             shiftId: inv.shift_id,
@@ -181,41 +288,59 @@ export const BarProvider = ({ children }) => {
             paymentMethod: inv.payment_method,
             transactionId: inv.transaction_id,
             fullDate: inv.created_at,
-            date: new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            items
+            date: new Date(inv.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            items,
           };
         });
 
         // Current shift invoices
-        setPaidInvoices(allMappedInvoices.filter(i => i.shiftId === (activeShift ? activeShift.id : null)));
+        setPaidInvoices(
+          allMappedInvoices.filter(
+            (i) => i.shiftId === (activeShift ? activeShift.id : null),
+          ),
+        );
 
         // History logic
-        const closedShifts = shiftsData.filter(s => s.closed_at);
-        setCashRegisterHistory(closedShifts.map(cs => ({
-          id: cs.id,
-          startTime: cs.opened_at,
-          endTime: cs.closed_at,
-          totalSales: Number(cs.total_real || cs.total_expected),
-          totalCash: allMappedInvoices.filter(i => i.shiftId === cs.id && i.paymentMethod === 'Efectivo').reduce((s, i) => s + i.total, 0),
-          totalCard: allMappedInvoices.filter(i => i.shiftId === cs.id && i.paymentMethod !== 'Efectivo').reduce((s, i) => s + i.total, 0),
-          invoices: allMappedInvoices.filter(i => i.shiftId === cs.id)
-        })));
+        const closedShifts = shiftsData.filter((s) => s.closed_at);
+        setCashRegisterHistory(
+          closedShifts.map((cs) => ({
+            id: cs.id,
+            startTime: cs.opened_at,
+            endTime: cs.closed_at,
+            totalSales: Number(cs.total_real || cs.total_expected),
+            totalCash: allMappedInvoices
+              .filter(
+                (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
+              )
+              .reduce((s, i) => s + i.total, 0),
+            totalCard: allMappedInvoices
+              .filter(
+                (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
+              )
+              .reduce((s, i) => s + i.total, 0),
+            invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
+          })),
+        );
       }
 
       // Fetch expenses
-      const { data: expData } = await supabase.from('expenses').select('*');
+      const { data: expData } = await supabase.from("expenses").select("*");
       if (expData) {
-        setExpenses(expData.map(e => ({
-          id: e.id,
-          description: e.description,
-          category: e.category,
-          amount: Number(e.amount),
-          isPaid: e.is_paid,
-          notificationDate: e.notification_date,
-          date: e.created_at
-        })));
+        setExpenses(
+          expData.map((e) => ({
+            id: e.id,
+            description: e.description,
+            category: e.category,
+            amount: Number(e.amount),
+            isPaid: e.is_paid,
+            notificationDate: e.notification_date,
+            date: e.created_at,
+          })),
+        );
       }
-
     } catch (err) {
       console.error("Error inicializando Supabase Data", err);
     } finally {
@@ -231,10 +356,23 @@ export const BarProvider = ({ children }) => {
     };
 
     // 1. Instant WebSocket Realtime Event Listener
-    const channel = supabase.channel(`bar-realtime-live`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, triggerSync)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, triggerSync)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, triggerSync)
+    const channel = supabase
+      .channel(`bar-realtime-live`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tables" },
+        triggerSync,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        triggerSync,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "invoices" },
+        triggerSync,
+      )
       .subscribe();
 
     // 2. High-frequency 2-second background sync fallback
@@ -249,51 +387,72 @@ export const BarProvider = ({ children }) => {
     };
   }, []);
 
-  const updateTableOrder = async (tableId, items, customerName = '', unprintedItems = null) => {
+  const updateTableOrder = async (
+    tableId,
+    items,
+    customerName = "",
+    unprintedItems = null,
+  ) => {
     try {
       const isOccupied = items.length > 0;
       const sTableId = String(tableId);
 
       // OPTIMISTIC UI UPDATE
-      setTables(prevTables => prevTables.map(t => {
-        if (String(t.id) === sTableId) {
-          return {
-            ...t,
-            status: isOccupied ? 'ocupada' : 'libre',
-            customerName: customerName,
-            assignedWaiterId: currentUser?.id,
-            items: items,
-            unprintedItems: unprintedItems || []
-          };
-        }
-        return t;
-      }));
+      setTables((prevTables) =>
+        prevTables.map((t) => {
+          if (String(t.id) === sTableId) {
+            return {
+              ...t,
+              status: isOccupied ? "ocupada" : "libre",
+              customerName: customerName,
+              assignedWaiterId: currentUser?.id,
+              items: items,
+              unprintedItems: unprintedItems || [],
+            };
+          }
+          return t;
+        }),
+      );
 
-      const { error: e1 } = await supabase.from('tables').upsert({
-        id: sTableId,
-        name: tables.find(t => String(t.id) === sTableId)?.name || (`Mesa ${sTableId}`),
-        status: isOccupied ? 'ocupada' : 'libre',
-        customer_name: customerName,
-        assigned_waiter_id: currentUser?.id,
-        created_at: isOccupied ? new Date().toISOString() : null
-      }, { onConflict: 'id' });
+      const { error: e1 } = await supabase.from("tables").upsert(
+        {
+          id: sTableId,
+          name:
+            tables.find((t) => String(t.id) === sTableId)?.name ||
+            `Mesa ${sTableId}`,
+          status: isOccupied ? "ocupada" : "libre",
+          customer_name: customerName,
+          assigned_waiter_id: currentUser?.id,
+          created_at: isOccupied ? new Date().toISOString() : null,
+        },
+        { onConflict: "id" },
+      );
       if (e1) {
         console.error("Error upserting table:", e1);
       }
 
-      const { error: e2 } = await supabase.from('orders').delete().eq('table_id', sTableId);
+      const { error: e2 } = await supabase
+        .from("orders")
+        .delete()
+        .eq("table_id", sTableId);
       if (e2) {
         console.error("Error deleting old orders:", e2);
       }
-      
+
       if (isOccupied) {
-        const ordersToInsert = items.map(i => ({
+        const ordersToInsert = items.map((i) => ({
           table_id: sTableId,
           product_id: String(i.product.id),
           quantity: i.quantity,
-          is_printed: unprintedItems ? !unprintedItems.find(u => String(u.product.id) === String(i.product.id)) : true
+          is_printed: unprintedItems
+            ? !unprintedItems.find(
+                (u) => String(u.product.id) === String(i.product.id),
+              )
+            : true,
         }));
-        const { error: e3 } = await supabase.from('orders').insert(ordersToInsert);
+        const { error: e3 } = await supabase
+          .from("orders")
+          .insert(ordersToInsert);
         if (e3) {
           console.error("Error inserting orders:", e3);
         }
@@ -307,13 +466,18 @@ export const BarProvider = ({ children }) => {
     try {
       const sTableId = String(tableId);
       // OPTIMISTIC UI UPDATE
-      setTables(prevTables => prevTables.map(t => {
-        if (String(t.id) === sTableId) {
-          return { ...t, unprintedItems: [] };
-        }
-        return t;
-      }));
-      await supabase.from('orders').update({ is_printed: true }).eq('table_id', sTableId);
+      setTables((prevTables) =>
+        prevTables.map((t) => {
+          if (String(t.id) === sTableId) {
+            return { ...t, unprintedItems: [] };
+          }
+          return t;
+        }),
+      );
+      await supabase
+        .from("orders")
+        .update({ is_printed: true })
+        .eq("table_id", sTableId);
     } catch (err) {
       console.error("Error clearing unprinted items:", err);
     }
@@ -322,28 +486,31 @@ export const BarProvider = ({ children }) => {
   const addBarAccount = async (customerName) => {
     try {
       const newBarId = `barra_${Date.now()}`;
-      
-      // OPTIMISTIC UI UPDATE
-      setTables(prev => [...prev, {
-        id: newBarId,
-        name: 'Barra',
-        status: 'ocupada',
-        customerName: customerName,
-        assignedWaiterId: currentUser?.id,
-        createdAt: new Date().toISOString(),
-        isBar: true,
-        items: [],
-        unprintedItems: []
-      }]);
 
-      const { error } = await supabase.from('tables').insert({
+      // OPTIMISTIC UI UPDATE
+      setTables((prev) => [
+        ...prev,
+        {
+          id: newBarId,
+          name: "Barra",
+          status: "ocupada",
+          customerName: customerName,
+          assignedWaiterId: currentUser?.id,
+          createdAt: new Date().toISOString(),
+          isBar: true,
+          items: [],
+          unprintedItems: [],
+        },
+      ]);
+
+      const { error } = await supabase.from("tables").insert({
         id: newBarId,
-        name: 'Barra',
-        status: 'ocupada',
+        name: "Barra",
+        status: "ocupada",
         is_bar_account: true,
         customer_name: customerName,
         assigned_waiter_id: currentUser?.id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
       if (error) {
         console.error("Error creating bar account:", error);
@@ -354,98 +521,181 @@ export const BarProvider = ({ children }) => {
       window.alert("Crash al crear cuenta en barra: " + err.message);
     }
   };
+  // Función para crear una nueva mesa consecutiva (Mesa 11, Mesa 12, etc.)
+  const addNewTable = async () => {
+    try {
+      // 1. Consultar a Supabase todas las mesas existentes para encontrar el número más alto
+      const { data: allTables } = await supabase.from('tables').select('id, name, is_bar_account');
+      
+      let maxNumber = 10;
+      if (allTables && allTables.length > 0) {
+        allTables.forEach(t => {
+          if (!t.is_bar_account) {
+            const num = parseInt(t.id, 10);
+            if (!isNaN(num) && num > maxNumber) {
+              maxNumber = num;
+            }
+          }
+        });
+      }
+
+      const nextNumber = maxNumber + 1;
+      const nextId = String(nextNumber);
+      const tableName = `Mesa ${nextNumber}`;
+
+      // 2. Inserta la nueva mesa en Supabase
+      const { error } = await supabase.from("tables").insert({
+        id: nextId,
+        name: tableName,
+        status: "libre",
+        is_bar_account: false,
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) {
+        console.error("Error creando mesa:", error);
+        alert("No se pudo crear la mesa: " + error.message);
+        return null;
+      }
+
+      // 3. Sincroniza los datos
+      await fetchData(true);
+      return nextId;
+    } catch (err) {
+      console.error("Crash creando mesa:", err);
+      return null;
+    }
+  };
 
   const sendOrderToCashier = async (tableId, customerName) => {
     const sTableId = String(tableId);
     // OPTIMISTIC UI
-    setTables(prev => prev.map(t => 
-      String(t.id) === sTableId ? { ...t, status: 'pendiente_pago', customerName } : t
-    ));
+    setTables((prev) =>
+      prev.map((t) =>
+        String(t.id) === sTableId
+          ? { ...t, status: "pendiente_pago", customerName }
+          : t,
+      ),
+    );
 
-    await supabase.from('tables').update({
-      status: 'pendiente_pago',
-      customer_name: customerName
-    }).eq('id', sTableId);
+    await supabase
+      .from("tables")
+      .update({
+        status: "pendiente_pago",
+        customer_name: customerName,
+      })
+      .eq("id", sTableId);
   };
 
-  const payInvoice = async (tableId, paymentMethod, transactionId = '') => {
+  const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
     const sTableId = String(tableId);
-    const table = tables.find(t => String(t.id) === sTableId);
+    const table = tables.find((t) => String(t.id) === sTableId);
     if (!table || table.items.length === 0) return;
 
     // OPTIMISTIC UI
     if (table.isBar) {
-      setTables(prev => prev.filter(t => String(t.id) !== sTableId));
+      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
     } else {
-      setTables(prev => prev.map(t => 
-        String(t.id) === sTableId ? { 
-          ...t, status: 'libre', customerName: '', assignedWaiterId: null, createdAt: null, items: [], unprintedItems: [] 
-        } : t
-      ));
+      setTables((prev) =>
+        prev.map((t) =>
+          String(t.id) === sTableId
+            ? {
+                ...t,
+                status: "libre",
+                customerName: "",
+                assignedWaiterId: null,
+                createdAt: null,
+                items: [],
+                unprintedItems: [],
+              }
+            : t,
+        ),
+      );
     }
 
-    const total = table.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    const total = table.items.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
     const invoiceId = `FAC-${Date.now()}`;
 
     // 1. Insert Invoice
-    await supabase.from('invoices').insert({
+    await supabase.from("invoices").insert({
       id: invoiceId,
       shift_id: currentShiftId,
       table_name: table.name,
-      customer_name: table.customerName || 'Cliente',
-      waiter_name: currentUser?.name || 'Mesero',
+      customer_name: table.customerName || "Cliente",
+      waiter_name: currentUser?.name || "Mesero",
       total,
       payment_method: paymentMethod,
-      transaction_id: transactionId
+      transaction_id: transactionId,
     });
 
     // 2. Insert Invoice Items
-    const itemsToInsert = table.items.map(i => ({
+    const itemsToInsert = table.items.map((i) => ({
       invoice_id: invoiceId,
       product_name: i.product.name,
       quantity: i.quantity,
       price_at_sale: i.product.price,
-      cost_at_sale: i.product.cost || 0
+      cost_at_sale: i.product.cost || 0,
     }));
-    await supabase.from('invoice_items').insert(itemsToInsert);
+    await supabase.from("invoice_items").insert(itemsToInsert);
 
     // 3. Subtract Stock
     for (const item of table.items) {
-      if (item.product.category !== 'comida') {
-        const prod = products.find(p => String(p.id) === String(item.product.id));
+      if (item.product.category !== "comida") {
+        const prod = products.find(
+          (p) => String(p.id) === String(item.product.id),
+        );
         if (prod && prod.stock !== null) {
-          await supabase.from('products').update({ stock: Math.max(0, prod.stock - item.quantity) }).eq('id', prod.id);
+          await supabase
+            .from("products")
+            .update({ stock: Math.max(0, prod.stock - item.quantity) })
+            .eq("id", prod.id);
         }
       }
     }
 
     // 4. Free table and delete orders
     if (table.isBar) {
-      await supabase.from('tables').delete().eq('id', sTableId);
+      await supabase.from("tables").delete().eq("id", sTableId);
     } else {
-      await supabase.from('tables').update({
-        status: 'libre', customer_name: null, assigned_waiter_id: null, created_at: null
-      }).eq('id', sTableId);
+      await supabase
+        .from("tables")
+        .update({
+          status: "libre",
+          customer_name: null,
+          assigned_waiter_id: null,
+          created_at: null,
+        })
+        .eq("id", sTableId);
     }
-    await supabase.from('orders').delete().eq('table_id', sTableId);
+    await supabase.from("orders").delete().eq("table_id", sTableId);
   };
 
   const closeShift = async () => {
     if (!currentShiftId) return;
     const shiftTotal = paidInvoices.reduce((sum, inv) => sum + inv.total, 0);
-    
-    await supabase.from('shifts').update({
-      closed_at: new Date().toISOString(),
-      closed_by: currentUser?.id,
-      total_real: shiftTotal,
-      total_expected: shiftTotal
-    }).eq('id', currentShiftId);
+
+    await supabase
+      .from("shifts")
+      .update({
+        closed_at: new Date().toISOString(),
+        closed_by: currentUser?.id,
+        total_real: shiftTotal,
+        total_expected: shiftTotal,
+      })
+      .eq("id", currentShiftId);
 
     // Open new shift
-    const { data: newShift } = await supabase.from('shifts').insert({
-      opened_by: currentUser?.id
-    }).select().single();
-    
+    const { data: newShift } = await supabase
+      .from("shifts")
+      .insert({
+        opened_by: currentUser?.id,
+      })
+      .select()
+      .single();
+
     if (newShift) {
       setCurrentShiftId(newShift.id);
       setShiftStartTime(newShift.opened_at);
@@ -455,32 +705,35 @@ export const BarProvider = ({ children }) => {
 
   const cancelTableOrder = async (tableId) => {
     const sTableId = String(tableId);
-    await supabase.from('orders').delete().eq('table_id', sTableId);
-    const table = tables.find(t => String(t.id) === sTableId);
+    await supabase.from("orders").delete().eq("table_id", sTableId);
+    const table = tables.find((t) => String(t.id) === sTableId);
     if (table?.isBar) {
-      await supabase.from('tables').delete().eq('id', sTableId);
+      await supabase.from("tables").delete().eq("id", sTableId);
     } else {
-      await supabase.from('tables').update({ status: 'libre', customer_name: null }).eq('id', sTableId);
+      await supabase
+        .from("tables")
+        .update({ status: "libre", customer_name: null })
+        .eq("id", sTableId);
     }
     fetchData();
   };
 
   const uploadImage = async (file) => {
     if (!file) return null;
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split(".").pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     const filePath = `product_images/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('products')
+      .from("products")
       .upload(filePath, file);
 
     if (uploadError) {
-      console.error('Error uploading image:', uploadError);
+      console.error("Error uploading image:", uploadError);
       return null;
     }
 
-    const { data } = supabase.storage.from('products').getPublicUrl(filePath);
+    const { data } = supabase.storage.from("products").getPublicUrl(filePath);
     return data.publicUrl;
   };
 
@@ -490,11 +743,16 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
-    const { error } = await supabase.from('products').insert({
-      name: newProd.name, category_id: newProd.category, price: newProd.price, cost: newProd.cost, stock: newProd.stock, icon_path: imageUrl
+    const { error } = await supabase.from("products").insert({
+      name: newProd.name,
+      category_id: newProd.category,
+      price: newProd.price,
+      cost: newProd.cost,
+      stock: newProd.stock,
+      icon_path: imageUrl,
     });
     if (error) console.error("Error inserting product:", error);
-    
+
     fetchData();
   };
 
@@ -504,81 +762,122 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
-    const { error } = await supabase.from('products').update({
-      name: updatedProd.name, category_id: updatedProd.category, price: updatedProd.price, cost: updatedProd.cost, stock: updatedProd.stock, icon_path: imageUrl
-    }).eq('id', updatedProd.id);
+    const { error } = await supabase
+      .from("products")
+      .update({
+        name: updatedProd.name,
+        category_id: updatedProd.category,
+        price: updatedProd.price,
+        cost: updatedProd.cost,
+        stock: updatedProd.stock,
+        icon_path: imageUrl,
+      })
+      .eq("id", updatedProd.id);
     if (error) console.error("Error updating product:", error);
 
     fetchData();
   };
 
   const deleteProduct = async (productId) => {
-    await supabase.from('products').delete().eq('id', productId);
+    await supabase.from("products").delete().eq("id", productId);
     fetchData();
   };
 
   const updateStock = async (productId, newStock) => {
-    await supabase.from('products').update({ stock: newStock }).eq('id', productId);
+    await supabase
+      .from("products")
+      .update({ stock: newStock })
+      .eq("id", productId);
     fetchData();
   };
 
   const addUser = async (newUser) => {
-    await supabase.from('users').insert({
-      name: newUser.name, username: newUser.username, password_hash: newUser.password || '1234', role: newUser.role, is_active: true
+    await supabase.from("users").insert({
+      name: newUser.name,
+      username: newUser.username,
+      password_hash: newUser.password || "1234",
+      role: newUser.role,
+      is_active: true,
     });
     fetchData();
   };
 
   const updateUser = async (updatedUser) => {
-    await supabase.from('users').update({
-      name: updatedUser.name, username: updatedUser.username, password_hash: updatedUser.password, role: updatedUser.role, is_active: updatedUser.active
-    }).eq('id', updatedUser.id);
+    await supabase
+      .from("users")
+      .update({
+        name: updatedUser.name,
+        username: updatedUser.username,
+        password_hash: updatedUser.password,
+        role: updatedUser.role,
+        is_active: updatedUser.active,
+      })
+      .eq("id", updatedUser.id);
     fetchData();
   };
 
   const deleteUser = async (userId) => {
-    await supabase.from('users').delete().eq('id', userId);
+    await supabase.from("users").delete().eq("id", userId);
     fetchData();
   };
 
   const updateExchangeRate = async (newRate) => {
-    await supabase.from('settings').upsert({ key: 'exchange_rate', value: newRate }, { onConflict: 'key' });
+    await supabase
+      .from("settings")
+      .upsert({ key: "exchange_rate", value: newRate }, { onConflict: "key" });
     fetchData();
   };
 
   const addExpense = async (newExpense) => {
-    await supabase.from('expenses').insert({
+    await supabase.from("expenses").insert({
       shift_id: currentShiftId,
       description: newExpense.description,
       category: newExpense.category,
       amount: newExpense.amount,
       is_paid: newExpense.isPaid,
-      notification_date: newExpense.notificationDate
+      notification_date: newExpense.notificationDate,
     });
     fetchData();
   };
 
   const updateExpense = async (updatedExpense) => {
-    await supabase.from('expenses').update({
-      description: updatedExpense.description, category: updatedExpense.category, amount: updatedExpense.amount, is_paid: updatedExpense.isPaid, notification_date: updatedExpense.notificationDate
-    }).eq('id', updatedExpense.id);
+    await supabase
+      .from("expenses")
+      .update({
+        description: updatedExpense.description,
+        category: updatedExpense.category,
+        amount: updatedExpense.amount,
+        is_paid: updatedExpense.isPaid,
+        notification_date: updatedExpense.notificationDate,
+      })
+      .eq("id", updatedExpense.id);
     fetchData();
   };
 
   const deleteExpense = async (expenseId) => {
-    await supabase.from('expenses').delete().eq('id', expenseId);
+    await supabase.from("expenses").delete().eq("id", expenseId);
     fetchData();
   };
 
   const login = (username, password) => {
     const targetName = username.trim().toLowerCase();
     const targetPass = password.trim();
-    const foundUser = users.find(u => u.username?.toLowerCase() === targetName && u.password === targetPass);
+    const foundUser = users.find(
+      (u) =>
+        u.username?.toLowerCase() === targetName && u.password === targetPass,
+    );
 
-    if (!foundUser) return { success: false, message: 'Usuario o contraseña incorrectos.' };
-    if (!foundUser.active) return { success: false, message: 'Este usuario se encuentra inactivo.' };
+    if (!foundUser)
+      return { success: false, message: "Usuario o contraseña incorrectos." };
+    if (!foundUser.active)
+      return { success: false, message: "Este usuario se encuentra inactivo." };
 
-    const sessionData = { id: foundUser.id, name: foundUser.name, username: foundUser.username, role: foundUser.role };
+    const sessionData = {
+      id: foundUser.id,
+      name: foundUser.name,
+      username: foundUser.username,
+      role: foundUser.role,
+    };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
     setCurrentUser(sessionData);
     setCurrentRole(foundUser.role);
@@ -587,12 +886,24 @@ export const BarProvider = ({ children }) => {
 
   const loginMesero = (pin) => {
     const targetPass = pin.trim();
-    const foundUser = users.find(u => u.role === 'mesero' && u.password === targetPass);
+    const foundUser = users.find(
+      (u) => u.role === "mesero" && u.password === targetPass,
+    );
 
-    if (!foundUser) return { success: false, message: 'PIN incorrecto o mesero no encontrado.' };
-    if (!foundUser.active) return { success: false, message: 'Este usuario se encuentra inactivo.' };
+    if (!foundUser)
+      return {
+        success: false,
+        message: "PIN incorrecto o mesero no encontrado.",
+      };
+    if (!foundUser.active)
+      return { success: false, message: "Este usuario se encuentra inactivo." };
 
-    const sessionData = { id: foundUser.id, name: foundUser.name, username: foundUser.username, role: foundUser.role };
+    const sessionData = {
+      id: foundUser.id,
+      name: foundUser.name,
+      username: foundUser.username,
+      role: foundUser.role,
+    };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
     setCurrentUser(sessionData);
     setCurrentRole(foundUser.role);
@@ -607,25 +918,64 @@ export const BarProvider = ({ children }) => {
   // Check if initial shift is missing and create it
   useEffect(() => {
     if (!isLoading && !currentShiftId && currentUser) {
-      supabase.from('shifts').insert({ opened_by: currentUser.id }).select().single().then(({ data }) => {
-        if (data) {
-          setCurrentShiftId(data.id);
-          setShiftStartTime(data.opened_at);
-        }
-      });
+      supabase
+        .from("shifts")
+        .insert({ opened_by: currentUser.id })
+        .select()
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setCurrentShiftId(data.id);
+            setShiftStartTime(data.opened_at);
+          }
+        });
     }
   }, [isLoading, currentShiftId, currentUser]);
 
   if (isLoading && !products.length) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-800 font-bold text-xl">Conectando al Servidor Principal...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-800 font-bold text-xl">
+        Conectando al Servidor Principal...
+      </div>
+    );
   }
 
   return (
     <BarContext.Provider
       value={{
-        currentUser, currentRole, setCurrentRole, users, tables, products, paidInvoices, shiftStartTime, cashRegisterHistory, exchangeRate, expenses,
-        updateTableOrder, sendOrderToCashier, payInvoice, cancelTableOrder, clearUnprintedItems, addBarAccount, closeShift, addProduct, updateProduct, deleteProduct, updateStock,
-        addUser, updateUser, deleteUser, updateExchangeRate, addExpense, updateExpense, deleteExpense, login, loginMesero, logout
+        currentUser,
+        currentRole,
+        setCurrentRole,
+        users,
+        tables,
+        products,
+        paidInvoices,
+        shiftStartTime,
+        cashRegisterHistory,
+        exchangeRate,
+        expenses,
+        updateTableOrder,
+        sendOrderToCashier,
+        payInvoice,
+        cancelTableOrder,
+        clearUnprintedItems,
+        addBarAccount,
+        closeShift,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        updateStock,
+        addUser,
+        updateUser,
+        deleteUser,
+        updateExchangeRate,
+        addExpense,
+        updateExpense,
+        deleteExpense,
+        login,
+        loginMesero,
+        logout,
+        addNewTable,
       }}
     >
       {children}
@@ -635,6 +985,6 @@ export const BarProvider = ({ children }) => {
 
 export const useBar = () => {
   const context = useContext(BarContext);
-  if (!context) throw new Error('useBar debe usarse dentro de un BarProvider');
+  if (!context) throw new Error("useBar debe usarse dentro de un BarProvider");
   return context;
 };

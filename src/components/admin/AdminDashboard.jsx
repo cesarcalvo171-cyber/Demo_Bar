@@ -33,7 +33,7 @@ export const AdminDashboard = () => {
     <div className="space-y-6">
 
       {/* Tarjetas Principales del Admin */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         
         {/* Tasa de Cambio */}
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-center gap-3">
@@ -63,26 +63,9 @@ export const AdminDashboard = () => {
             <h3 className="text-xl font-extrabold text-white m-0">C${totalHistoricalSales.toFixed(2)}</h3>
           </div>
         </div>
-
-        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="text-yellow-500 p-3">
-            <Archive className="w-6 h-6 text-yellow-500" />
-          </div>
-          <div>
-            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Cortes de Caja</p>
-            <h3 className="text-xl font-extrabold text-white m-0">{cashRegisterHistory.length}</h3>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="text-yellow-500 p-3">
-            <ShoppingCart className="w-6 h-6 text-yellow-500" />
-          </div>
-          <div>
-            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Alertas Stock</p>
-            <h3 className="text-xl font-extrabold text-white m-0">{lowStockProducts.length} prod.</h3>
-          </div>
-        </div>
+  
+        
+       
 
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
           <div className="text-yellow-500 p-3">

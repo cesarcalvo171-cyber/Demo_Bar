@@ -26,88 +26,95 @@ const TableIcon = (props) => (
 import { WaiterHeader } from './WaiterHeader';
 
 export const TableGrid = () => {
-  const { tables, addBarAccount } = useBar();
+  const { tables, addBarAccount, addNewTable } = useBar();
   const [selectedTableId, setSelectedTableId] = useState(null);
-  const selectedTable = tables.find(t => t.id === selectedTableId);
-   // Contadores rápidos para la barra de estado
+  const selectedTable = tables.find(t => String(t.id) === String(selectedTableId));
+  
+  // Contadores rápidos para la barra de estado
   const occupiedTables = tables.filter(t => t.status === 'ocupada' && !t.isBar).length;
   const pendingPaymentTables = tables.filter(t => t.status === 'pendiente_pago' && !t.isBar).length;
   const barAccounts = tables.filter(t => t.isBar).length;
-
+  const freeTables = tables.filter(t => t.status === 'libre' && !t.isBar).length;
 
   return (
     <>
       <WaiterHeader />
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Encabezado e Instrucciones */}
-      <div className="mb-6  p-4 rounded-xl   flex flex-col md:flex-row md:items-center justify-center gap-2">
-  
-  {/* <div className="flex items-center gap-2">
-    <span className="text-slate-900">
-      Panel de Mesas
-    </span>
-  </div> */}
-  
+        <div className="mb-6 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-center gap-3">
+          {/* Resumen del estado actual del local */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between w-full md:w-auto md:flex-1 gap-4 bg-slate-800 px-4 py-3 rounded-xl border border-slate-700 text-xs md:text-sm shadow-md">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 w-full md:w-auto">
+              <div className="flex items-center gap-1.5">
+                <span className="text-green-500">
+                  <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
+                </span>
+                <span className="text-slate-300 font-serif text-[16px]">
+                  Libres: <strong>{freeTables}</strong>
+                </span>
+              </div>
 
-  {/* Resumen del estado actual del local */}
-  <div className="flex flex-col md:flex-row md:items-center justify-between w-full md:w-auto md:flex-1 gap-4 bg-slate-800 px-4 py-3 rounded-xl border border-slate-700 text-xs md:text-sm shadow-md">
-    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 w-full md:w-auto">
-      <div className="flex items-center gap-1.5">
-        <span className="text-green-500">
-           <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
-        </span>
-        <span className="text-slate-300 font-serif text-[16px]">
-          Libres: <strong>{10 - occupiedTables - pendingPaymentTables > 0 ? 10 - occupiedTables - pendingPaymentTables : 0}</strong>
-        </span>
-      </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-red-500">
+                  <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
+                </span>
+                <span className="text-slate-300 font-serif text-[16px]">
+                  Ocupadas: <strong>{occupiedTables}</strong>
+                </span>
+              </div>
 
-      <div className="flex items-center gap-1.5">
-        <span className="text-red-500">
-          <TableIcon className="w-6 h-6 font-extrabold stroke-current stroke-[1px]" />
-        </span>
-        <span className="text-slate-300 font-serif text-[16px]">
-          Ocupadas: <strong>{occupiedTables}</strong>
-        </span>
-      </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-yellow-500">
+                  <IoMdTime className="w-5 h-5" />
+                </span>
+                <span className="text-slate-300 font-serif text-[16px]">
+                  Por Cobrar: <strong>{pendingPaymentTables}</strong>
+                </span>
+              </div>
 
-      <div className="flex items-center gap-1.5">
-        <span className="text-yellow-500">
-          <IoMdTime className="w-5 h-5" />
-        </span>
-        <span className="text-slate-300 font-serif text-[16px]">
-          Por Cobrar: <strong>{pendingPaymentTables}</strong>
-        </span>
-      </div>
+              <div className="flex items-center gap-1.5 md:ml-2 md:border-l border-slate-600 md:pl-4">
+                <span className="text-blue-400">
+                  <IoMdTime className="w-5 h-5" />
+                </span>
+                <span className="text-slate-300 font-serif text-[16px]">
+                  Barra: <strong>{barAccounts}</strong>
+                </span>
+              </div>
+            </div>
 
-      <div className="flex items-center gap-1.5 md:ml-2 md:border-l border-slate-600 md:pl-4">
-        <span className="text-blue-400">
-          <IoMdTime className="w-5 h-5" />
-        </span>
-        <span className="text-slate-300 font-serif text-[16px]">
-          Cuentas en Barra: <strong>{barAccounts}</strong>
-        </span>
-      </div>
-    </div>
-    
-    <button
-      onClick={async () => {
-        const customerName = prompt("Ingresa el nombre del cliente en barra:");
-        if (customerName) {
-          const newId = await addBarAccount(customerName);
-          setSelectedTableId(newId);
-        }
-      }}
-      className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shrink-0 cursor-pointer"
-    >
-      <span className="text-xl leading-none mb-0.5">+</span>
-      <span>Cuenta en Barra</span>
-    </button>
-  </div>
-
-</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  const customerName = prompt("Ingresa el nombre del cliente en barra:");
+                  if (customerName) {
+                    const newId = await addBarAccount(customerName);
+                    setSelectedTableId(newId);
+                  }
+                }}
+                className="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold py-2.5 px-3.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0 text-xs sm:text-sm"
+              >
+                <span className="text-base leading-none font-black">+</span>
+                <span>Barra</span>
+              </button>
+              
+              <button
+                onClick={async () => { 
+                  const newId = await addNewTable();
+                  if (newId) {
+                    setSelectedTableId(newId);
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-3.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0 text-xs sm:text-sm"
+              >
+                <span className="text-base leading-none font-black">+</span>
+                <span>Mesa</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
       {/* Grilla de 10 Mesas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {tables.map(table => (
           <TableCard
             key={table.id}

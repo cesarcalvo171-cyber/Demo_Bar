@@ -6,7 +6,7 @@ import { CashierView } from './components/cashier/CashierView';
 import { AdminView } from './components/admin/AdminView';
 import { Login } from './components/common/Login';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
-
+import { Footer } from './components/common/Footer';
 const RootRedirect = () => {
   const { currentUser } = useBar();
   if (!currentUser) return <Navigate to="/login" replace />;
@@ -48,6 +48,7 @@ const MainContent = () => {
           />
         </Routes>
       </main>
+      <Footer/>
      
     </Router>
     
