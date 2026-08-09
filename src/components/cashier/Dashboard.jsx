@@ -39,43 +39,43 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 font-sans">
       {/* Tarjetas de Métricas Principales (2 Columnas) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {/* Total Ventas del Día */}
-        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className=" text-yellow-500 p-3 ">
-            <DollarSign className="w-6 h-6 text-yellow-500" />
+        <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-700 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="text-yellow-500 p-2.5 sm:p-3 bg-yellow-500/10 rounded-xl">
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Ventas del Turno</p>
-            <h3 className="text-2xl font-extrabold text-white  font-serif m-0">C${totalSales.toFixed(2)}</h3>
+            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Ventas del Turno</p>
+            <h3 className="text-xl sm:text-2xl font-black text-white m-0 mt-0.5">C${totalSales.toFixed(2)}</h3>
           </div>
         </div>
 
         {/* Facturas Cobradas */}
-        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className=" text-yellow-500 p-3 ">
-            <Receipt className="w-6 h-6 text-yellow-500" />
+        <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-700 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="text-yellow-500 p-2.5 sm:p-3 bg-yellow-500/10 rounded-xl">
+            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-[18px] font-semibold font-serif text-yellow-500 uppercase tracking-wider m-0">Facturas Pagadas</p>
-            <h3 className="text-2xl font-extrabold text-white font-serif m-0">{totalInvoicesCount}</h3>
+            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Facturas Pagadas</p>
+            <h3 className="text-xl sm:text-2xl font-black text-white m-0 mt-0.5">{totalInvoicesCount}</h3>
           </div>
         </div>
       </div>
 
       {/* Botón de Cierre de Caja */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-800 m-0">Cierre de Caja</h3>
-          <p className="text-sm text-slate-500 mt-1 mb-0">Imprime el ticket de corte (Z) con desglose por categoría y auditoría de inventario.</p>
+          <h3 className="text-base sm:text-lg font-bold text-slate-800 m-0">Cierre de Caja</h3>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 mb-0">Imprime el ticket de corte (Z) con desglose por categoría y auditoría de inventario.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
           <button
             onClick={handlePrintZReceipt}
             disabled={totalInvoicesCount === 0}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-white transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-white transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm shrink-0"
           >
             <Printer className="w-4 h-4 text-yellow-400" />
             Imprimir Corte Z
@@ -84,10 +84,10 @@ export const Dashboard = () => {
           <button
             onClick={handleCloseShift}
             disabled={activeTablesCount > 0}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-md text-sm ${
+            className={`flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-white transition-all shadow-sm text-xs sm:text-sm shrink-0 ${
               activeTablesCount > 0 
                 ? 'bg-slate-400 cursor-not-allowed opacity-70' 
-                : 'bg-red-600 hover:bg-red-700 hover:shadow-red-500/25 cursor-pointer'
+                : 'bg-red-600 hover:bg-red-700 hover:shadow-red-500/25 active:scale-95 cursor-pointer'
             }`}
           >
             {activeTablesCount > 0 ? (
@@ -101,7 +101,7 @@ export const Dashboard = () => {
       </div>
 
       {activeTablesCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm font-semibold">
+        <div className="bg-amber-50 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex items-center gap-3 text-amber-800 text-xs sm:text-sm font-semibold">
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
           <p className="m-0">No puedes cerrar la caja porque hay {activeTablesCount} mesa(s) con clientes. Debes cobrar o cancelar todas las cuentas antes de cerrar el turno.</p>
         </div>

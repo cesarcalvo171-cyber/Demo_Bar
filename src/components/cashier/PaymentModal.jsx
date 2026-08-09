@@ -70,31 +70,31 @@ export const PaymentModal = ({ table, onClose }) => {
       <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Cabecera */}
-        <div className="bg-slate-900 p-5 flex justify-between items-center shrink-0">
+        <div className="bg-slate-900 p-4 sm:p-5 flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-xl font-black text-white m-0">Cobrar {table.name}</h2>
-            {table.customerName && <p className="text-sm text-slate-300 font-semibold m-0">{table.customerName}</p>}
+            <h2 className="text-lg sm:text-xl font-black text-white m-0">Cobrar {table.name}</h2>
+            {table.customerName && <p className="text-xs sm:text-sm text-slate-300 font-semibold m-0">{table.customerName}</p>}
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1">
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 font-sans">
           {/* Totales Grandes */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center mb-6">
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total a Pagar</p>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6">
-              <span className="text-4xl font-black text-slate-900">C${totalCordobas.toFixed(2)}</span>
-              <span className="hidden md:inline-block text-slate-300 text-2xl font-light">|</span>
-              <span className="text-2xl font-bold text-slate-500">U${totalDolares.toFixed(2)}</span>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-6 text-center mb-4 sm:mb-6">
+            <p className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total a Pagar</p>
+            <div className="flex flex-row items-center justify-center gap-3 sm:gap-6">
+              <span className="text-2xl sm:text-4xl font-black text-slate-900">C${totalCordobas.toFixed(2)}</span>
+              <span className="text-slate-300 text-xl sm:text-2xl font-light">|</span>
+              <span className="text-xl sm:text-2xl font-bold text-slate-500">U${totalDolares.toFixed(2)}</span>
             </div>
           </div>
 
           {/* Selección de Método de Pago */}
-          <div className="mb-6">
-            <label className="block text-sm font-bold text-slate-700 mb-3">Método de Pago</label>
-            <div className="grid grid-cols-3 gap-3">
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2 sm:mb-3">Método de Pago</label>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {[
                 { id: 'Efectivo', icon: Banknote },
                 { id: 'Tarjeta', icon: CreditCard },
@@ -107,14 +107,14 @@ export const PaymentModal = ({ table, onClose }) => {
                     setReceivedAmount('');
                     setReferenceNumber('');
                   }}
-                  className={`flex flex-col items-center justify-center py-4 px-2 rounded-xl border-2 transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-3 sm:py-4 px-1.5 sm:px-2 rounded-xl border-2 transition-all cursor-pointer ${
                     paymentMethod === method.id 
                       ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
                       : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-200 hover:bg-slate-50'
                   }`}
                 >
-                  <method.icon className={`w-6 h-6 mb-2 ${paymentMethod === method.id ? 'text-emerald-600' : 'text-slate-400'}`} />
-                  <span className="text-xs font-bold">{method.id}</span>
+                  <method.icon className={`w-5 h-5 sm:w-6 sm:h-6 mb-1.5 ${paymentMethod === method.id ? 'text-emerald-600' : 'text-slate-400'}`} />
+                  <span className="text-[11px] sm:text-xs font-bold">{method.id}</span>
                 </button>
               ))}
             </div>
@@ -122,21 +122,21 @@ export const PaymentModal = ({ table, onClose }) => {
 
           {/* Lógica Condicional del Método de Pago */}
           {paymentMethod === 'Efectivo' ? (
-            <div className="space-y-5 animate-in slide-in-from-bottom-2 duration-300">
+            <div className="space-y-4 sm:space-y-5 animate-in slide-in-from-bottom-2 duration-300">
               
-              <div className="flex gap-4">
-                <div className="w-1/3">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Moneda</label>
-                  <div className="flex bg-slate-100 rounded-lg p-1">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="w-full sm:w-1/3">
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1.5 sm:mb-2">Moneda</label>
+                  <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200">
                     <button 
                       onClick={() => setCurrency('NIO')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-md transition-colors cursor-pointer ${currency === 'NIO' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${currency === 'NIO' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                       C$ (NIO)
                     </button>
                     <button 
                       onClick={() => setCurrency('USD')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-md transition-colors cursor-pointer ${currency === 'USD' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${currency === 'USD' ? 'bg-white shadow-xs text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                       U$ (USD)
                     </button>
@@ -144,9 +144,9 @@ export const PaymentModal = ({ table, onClose }) => {
                 </div>
 
                 <div className="flex-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">¿Con cuánto paga el cliente?</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-500 uppercase mb-1.5 sm:mb-2">¿Con cuánto paga el cliente?</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base sm:text-lg">
                       {currency === 'NIO' ? 'C$' : 'U$'}
                     </span>
                     <input
@@ -156,7 +156,7 @@ export const PaymentModal = ({ table, onClose }) => {
                       value={receivedAmount}
                       onChange={(e) => setReceivedAmount(e.target.value)}
                       placeholder="Ej. 1000"
-                      className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-xl font-bold text-slate-900 focus:outline-none focus:border-emerald-500 transition-colors"
+                      className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-white border-2 border-slate-200 rounded-xl text-lg sm:text-xl font-bold text-slate-900 focus:outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
                 </div>
