@@ -3,6 +3,8 @@ import { useBar } from '../../context/BarContext';
 import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers, TrendingUp } from 'lucide-react';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 
+import { INITIAL_PRODUCTS } from '../../mock/initialData';
+
 export const AdminShiftHistory = () => {
   const { cashRegisterHistory, products, categories } = useBar();
   const [expandedShift, setExpandedShift] = useState(null);
@@ -48,6 +50,83 @@ export const AdminShiftHistory = () => {
 
   const sortedMonths = Object.keys(groupedByMonth);
 
+  // Resolver nombre de categoría exacto sin comodín General
+  const resolveCategoryName = (prodName, itemCategory) => {
+    const cleanName = (prodName || '').trim().toLowerCase();
+
+    const matchedProd =
+      (products || []).find((p) => p.name?.trim().toLowerCase() === cleanName) ||
+      (INITIAL_PRODUCTS || []).find((p) => p.name?.trim().toLowerCase() === cleanName);
+
+    let rawCat = matchedProd?.category || itemCategory;
+
+    if (!rawCat || rawCat.toLowerCase() === 'general') {
+      if (
+        cleanName.includes('toña') ||
+        cleanName.includes('clasica') ||
+        cleanName.includes('spark') ||
+        cleanName.includes('heineken') ||
+        cleanName.includes('miller') ||
+        cleanName.includes('sol') ||
+        cleanName.includes('bambu') ||
+        cleanName.includes('smirnof') ||
+        cleanName.includes('corona')
+      ) {
+        rawCat = 'cervezas';
+      } else if (
+        cleanName.includes('nachos') ||
+        cleanName.includes('alitas') ||
+        cleanName.includes('salchipapa') ||
+        cleanName.includes('hamburguesa') ||
+        cleanName.includes('hot dog') ||
+        cleanName.includes('consume') ||
+        cleanName.includes('toston')
+      ) {
+        rawCat = 'comida';
+      } else if (
+        cleanName.includes('reserva') ||
+        cleanName.includes('lite') ||
+        cleanName.includes('plata') ||
+        cleanName.includes('ron') ||
+        cleanName.includes('licor') ||
+        cleanName.includes('vodka') ||
+        cleanName.includes('whisky')
+      ) {
+        rawCat = 'licores';
+      } else if (
+        cleanName.includes('chovi') ||
+        cleanName.includes('chubby') ||
+        cleanName.includes('gatorade') ||
+        cleanName.includes('power') ||
+        cleanName.includes('agua') ||
+        cleanName.includes('pepsi') ||
+        cleanName.includes('ensa') ||
+        cleanName.includes('lipton')
+      ) {
+        rawCat = 'Bebida sin alcohol';
+      } else if (cleanName.includes('cubetazo') || cleanName.includes('promo')) {
+        rawCat = 'promociones';
+      } else {
+        rawCat = 'General';
+      }
+    }
+
+    const catObj = (categories || []).find(
+      (c) => c.id?.toLowerCase() === rawCat.toLowerCase() || c.name?.toLowerCase() === rawCat.toLowerCase()
+    );
+
+    const baseName = catObj?.name || rawCat;
+    const lower = baseName.toLowerCase();
+
+    if (lower === 'comida' || lower === 'comidas') return 'COMIDAS';
+    if (lower === 'cervezas' || lower === 'cerveza') return 'CERVEZAS';
+    if (lower === 'licores' || lower === 'licor') return 'LICORES';
+    if (lower.includes('bebida')) return 'BEBIDAS SIN ALCOHOL';
+    if (lower === 'chiveria' || lower === 'chivería') return 'CHIVERÍA';
+    if (lower === 'promociones') return 'PROMOCIONES';
+    return baseName.toUpperCase();
+  };
+
   // Función para procesar métricas de un turno (categorías y stock)
   const getShiftMetrics = (invoices = []) => {
     const catMap = {};
@@ -59,15 +138,11 @@ export const AdminShiftHistory = () => {
         const price = Number(item.price) || 0;
         const total = price * qty;
         const prodName = (item.name || 'Producto').trim();
+        const catName = resolveCategoryName(prodName, item.category);
 
-        const matchedProd = (products || []).find(
-          p => p.name?.trim().toLowerCase() === prodName.toLowerCase()
-        );
-        const catId = item.category || matchedProd?.category || 'General';
-        const catObj = (categories || []).find(
-          c => c.id?.toLowerCase() === catId.toLowerCase()
-        );
-        const catName = (catObj?.name || catId).toUpperCase();
+        const matchedProd =
+          (products || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase()) ||
+          (INITIAL_PRODUCTS || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase());
 
         // Categoría
         if (!catMap[catName]) {
@@ -76,19 +151,33 @@ export const AdminShiftHistory = () => {
         catMap[catName].totalAmount += total;
         catMap[catName].totalUnits += qty;
 
+        // Calcular stock para la auditoría (incluyendo promociones/cubetazos)
+        let stockDisplay = 'Cocina';
+        let displayName = prodName;
+
+        if (prodName.toLowerCase().includes('cubetazo toña') || prodName.toLowerCase().includes('cubetazo tona')) {
+          displayName = 'CUBETAZO TOÑA (x6 bot.)';
+          const tonaProd = (products || []).find(p => p.name?.toLowerCase().includes('toña 12') || p.id === 1);
+          stockDisplay = tonaProd && tonaProd.stock !== null ? `${tonaProd.stock} Toña` : '6 Toñas';
+        } else if (prodName.toLowerCase().includes('cubetazo clasica')) {
+          displayName = 'CUBETAZO CLASICA (x6 bot.)';
+          const clasicaProd = (products || []).find(p => p.name?.toLowerCase().includes('clasica 12') || p.id === 4);
+          stockDisplay = clasicaProd && clasicaProd.stock !== null ? `${clasicaProd.stock} Clásica` : '6 Clásicas';
+        } else if (matchedProd && matchedProd.stock !== null && matchedProd.category !== 'comida') {
+          stockDisplay = `${matchedProd.stock} unid.`;
+        }
+
         // Producto
-        if (!prodMap[prodName]) {
-          prodMap[prodName] = {
-            name: prodName,
+        if (!prodMap[displayName]) {
+          prodMap[displayName] = {
+            name: displayName,
             category: catName,
             quantitySold: 0,
-            currentStock:
-              matchedProd && matchedProd.stock !== null && matchedProd.category !== 'comida'
-                ? `${matchedProd.stock} unid.`
-                : 'Cocina',
+            currentStock: stockDisplay,
           };
         }
-        prodMap[prodName].quantitySold += qty;
+        prodMap[displayName].quantitySold += qty;
+        prodMap[displayName].currentStock = stockDisplay;
       });
     });
 

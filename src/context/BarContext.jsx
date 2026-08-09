@@ -700,13 +700,49 @@ export const BarProvider = ({ children }) => {
     }));
     await supabase.from("invoice_items").insert(itemsToInsert);
 
-    // 3. Subtract Stock
+    // 3. Subtract Stock (incluye soporte para Cubetazos / Promociones Combo)
     for (const item of table.items) {
       if (item.product.category !== "comida") {
         const prod = products.find(
-          (p) => String(p.id) === String(item.product.id),
+          (p) => String(p.id) === String(item.product.id)
+        ) || (INITIAL_PRODUCTS || []).find(
+          (p) => p.name?.trim().toLowerCase() === item.product.name?.trim().toLowerCase()
         );
-        if (prod && prod.stock !== null) {
+
+        // Si tiene bundleItems configurados (ej: Cubetazo con 6 cervezas)
+        if (prod && prod.bundleItems && Array.isArray(prod.bundleItems) && prod.bundleItems.length > 0) {
+          for (const bundle of prod.bundleItems) {
+            const baseProd = products.find((p) => Number(p.id) === Number(bundle.productId));
+            if (baseProd && baseProd.stock !== null) {
+              const qtyToSubtract = Number(bundle.quantity || 1) * Number(item.quantity || 1);
+              await supabase
+                .from("products")
+                .update({ stock: Math.max(0, baseProd.stock - qtyToSubtract) })
+                .eq("id", baseProd.id);
+            }
+          }
+        } else if (prod && (prod.name?.toLowerCase().includes("cubetazo toña") || prod.name?.toLowerCase().includes("cubetazo tona"))) {
+          // Fallback explícito: Cubetazo Toña descuenta 6 Toñas 12oz
+          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12") || p.id === 1);
+          if (tonaProd && tonaProd.stock !== null) {
+            const qtyToSubtract = 6 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, tonaProd.stock - qtyToSubtract) })
+              .eq("id", tonaProd.id);
+          }
+        } else if (prod && prod.name?.toLowerCase().includes("cubetazo clasica")) {
+          // Fallback explícito: Cubetazo Clásica descuenta 6 Clásicas 12oz
+          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12") || p.id === 4);
+          if (clasicaProd && clasicaProd.stock !== null) {
+            const qtyToSubtract = 6 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, clasicaProd.stock - qtyToSubtract) })
+              .eq("id", clasicaProd.id);
+          }
+        } else if (prod && prod.stock !== null) {
+          // Producto individual estándar con stock numérico
           await supabase
             .from("products")
             .update({ stock: Math.max(0, prod.stock - item.quantity) })
