@@ -26,7 +26,7 @@ export const OrderModal = ({ table, onClose }) => {
     currentUser,
     exchangeRate,
   } = useBar();
-  const [selectedCategory, setSelectedCategory] = useState("comida");
+  const [selectedCategory, setSelectedCategory] = useState("cervezas");
   
   // Estado local atómico e independiente para items de la mesa
   const [localItems, setLocalItems] = useState(table.items || []);
