@@ -253,14 +253,14 @@ export const OrderModal = ({ table, onClose }) => {
 
             <div className="mb-2.5">
               <div className="relative">
-                <UserCheck className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
+s               <label htmlFor="" className="text-red-600 text-sm">Ingresa Nombre del Cliente *</label>
                 <input
                   type="text"
                   placeholder="Referencia o Cliente (Ej. Juan Pérez)"
                   value={customerName}
                   onBlur={() => updateTableOrder(table.id, localItems, customerName, localUnprinted)}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors"
+                  className="w-full pl-8 pr-3 py-3 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors"
                 />
               </div>
             </div>
