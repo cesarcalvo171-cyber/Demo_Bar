@@ -27,12 +27,12 @@ export const Login = () => {
     setErrorMsg("");
 
     let res;
-    if (loginType === "mesero") {
+    if (loginType === "mesero" || loginType === "cajero") {
       if (!pin.trim()) {
-        setErrorMsg("Debes ingresar tu PIN");
+        setErrorMsg("Debes ingresar tu PIN de acceso");
         return;
       }
-      res = loginMesero(pin);
+      res = loginMesero(pin, loginType);
     } else {
       res = login(username, password);
     }
@@ -61,12 +61,20 @@ export const Login = () => {
         </div>
         {/*Cabezera del step */}
         <h1 className="text-center text-2xl font-bold text-yellow-500 m-0">
-          {step === 1 ? "Selecciona tu perfil" : "Iniciar Sesión"}
+          {step === 1
+            ? "Selecciona tu perfil"
+            : loginType === "cajero"
+            ? "Acceso Cajero"
+            : loginType === "mesero"
+            ? "Acceso Mesero"
+            : "Acceso Administrador"}
         </h1>
         <p className="text-sm text-yellow-500 mt-2 text-center">
           {step === 1
-            ? "Elige según tu rol "
-            : "Ingresa tus credenciales de acceso."}
+            ? "Elige según tu rol"
+            : loginType === "admin"
+            ? "Ingresa tu usuario y contraseña de administrador."
+            : "Ingresa tu PIN de acceso rápido (6 dígitos)."}
         </p>
          {/* Contenido del step */}
       <div className="px-8 pb-10 mt-4">
@@ -108,7 +116,7 @@ export const Login = () => {
                 <span>{errorMsg}</span>
               </div>
             )}
-            {loginType === "mesero" ? (
+            {loginType === "mesero" || loginType == 'cajero'? (
               <div className="pt-2">
                 
                 <input

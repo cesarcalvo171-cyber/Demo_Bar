@@ -31,9 +31,9 @@ export const UserManager = () => {
     if (!formData.name.trim()) return;
 
     let finalData = { ...formData };
-    if (finalData.role === 'mesero') {
+    if (finalData.role === 'mesero' || finalData.role === 'cajero') {
        if (!finalData.username.trim()) {
-         finalData.username = `mesero_${Date.now().toString().slice(-4)}`;
+         finalData.username = `${finalData.role}_${Date.now().toString().slice(-4)}`;
        }
     } else {
        if (!finalData.username.trim()) return;
@@ -164,13 +164,13 @@ export const UserManager = () => {
                 />
               </div>
 
-              {formData.role !== 'mesero' && (
+              {formData.role === 'admin' && (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de Usuario (Login):</label>
                   <input
                     type="text"
-                    required={formData.role !== 'mesero'}
-                    placeholder="Ej. cmartinez"
+                    required
+                    placeholder="Ej. admin"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"
@@ -180,12 +180,12 @@ export const UserManager = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {formData.role === 'mesero' ? 'PIN de Acceso (Numérico):' : 'Contraseña de Acceso:'}
+                  {formData.role === 'admin' ? 'Contraseña de Acceso:' : 'PIN de Acceso (6 dígitos):'}
                 </label>
                 <input
-                  type={formData.role === 'mesero' ? 'text' : 'password'}
+                  type={formData.role === 'admin' ? 'password' : 'text'}
                   required
-                  placeholder={formData.role === 'mesero' ? 'Ej. 123456' : 'Ej. 1234'}
+                  placeholder={formData.role === 'admin' ? 'Contraseña de acceso' : 'Ej. 123456'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"

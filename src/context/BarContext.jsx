@@ -922,16 +922,21 @@ export const BarProvider = ({ children }) => {
     return { success: true, user: sessionData };
   };
 
-  const loginMesero = (pin) => {
+  const loginMesero = (pin, expectedRole = null) => {
     const targetPass = pin.trim();
-    const foundUser = users.find(
-      (u) => u.role === "mesero" && u.password === targetPass,
-    );
+    const foundUser = users.find((u) => {
+      const roleMatch = expectedRole ? u.role === expectedRole : (u.role === "mesero" || u.role === "cajero");
+      return roleMatch && u.password === targetPass;
+    });
 
     if (!foundUser)
       return {
         success: false,
-        message: "PIN incorrecto o mesero no encontrado.",
+        message: expectedRole === "cajero" 
+          ? "PIN incorrecto o cajero no encontrado." 
+          : expectedRole === "mesero"
+          ? "PIN incorrecto o mesero no encontrado."
+          : "PIN incorrecto o usuario no encontrado.",
       };
     if (!foundUser.active)
       return { success: false, message: "Este usuario se encuentra inactivo." };
