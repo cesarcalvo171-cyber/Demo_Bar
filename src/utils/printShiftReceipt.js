@@ -109,6 +109,23 @@ export const printShiftCloseReceipt = ({
     return baseName.toUpperCase();
   };
 
+  // Función para obtener unidades físicas reales (ej. 1 Cubetazo = 6 cervezas)
+  const getPhysicalUnits = (prodName, qty, matchedProd) => {
+    const cleanName = (prodName || "").toLowerCase();
+    const numQty = Number(qty) || 1;
+
+    if (matchedProd?.bundleItems && Array.isArray(matchedProd.bundleItems) && matchedProd.bundleItems.length > 0) {
+      const totalInBundle = matchedProd.bundleItems.reduce((s, b) => s + (Number(b.quantity) || 1), 0);
+      return numQty * totalInBundle;
+    }
+
+    if (cleanName.includes("cubetazo") || cleanName.includes("cubetazo toña") || cleanName.includes("cubetazo clasica") || cleanName.includes("cubetazo tona")) {
+      return numQty * 6;
+    }
+
+    return numQty;
+  };
+
   // 1. Agrupar productos vendidos y calcular totales por categoría y por producto
   const categorySummaryMap = {};
   const productAuditMap = {};
@@ -126,6 +143,8 @@ export const printShiftCloseReceipt = ({
         (products || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase()) ||
         (INITIAL_PRODUCTS || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase());
 
+      const physicalUnits = getPhysicalUnits(prodName, qty, matchedProd);
+
       // Acumular por categoría
       if (!categorySummaryMap[catDisplayName]) {
         categorySummaryMap[catDisplayName] = {
@@ -135,7 +154,7 @@ export const printShiftCloseReceipt = ({
         };
       }
       categorySummaryMap[catDisplayName].totalAmount += totalItem;
-      categorySummaryMap[catDisplayName].totalUnits += qty;
+      categorySummaryMap[catDisplayName].totalUnits += physicalUnits;
 
       // Calcular stock para la auditoría (incluyendo promociones/cubetazos)
       let stockDisplay = "Cocina";
@@ -144,7 +163,7 @@ export const printShiftCloseReceipt = ({
       if (prodName.toLowerCase().includes("cubetazo toña") || prodName.toLowerCase().includes("cubetazo tona")) {
         displayName = "CUBETAZO TOÑA (x6 bot.)";
         const tonaProd = (products || []).find(p => p.name?.toLowerCase().includes("toña 12") || p.id === 1);
-        stockDisplay = tonaProd && tonaProd.stock !== null ? `${tonaProd.stock} Toña` : "6 Toñas";
+        stockDisplay = tonaProd && tonaProd.stock !== null ? `${tonaProd.stock} Toña` : "110 Toña";
       } else if (prodName.toLowerCase().includes("cubetazo clasica")) {
         displayName = "CUBETAZO CLASICA (x6 bot.)";
         const clasicaProd = (products || []).find(p => p.name?.toLowerCase().includes("clasica 12") || p.id === 4);
@@ -162,7 +181,7 @@ export const printShiftCloseReceipt = ({
           currentStock: stockDisplay,
         };
       }
-      productAuditMap[displayName].quantitySold += qty;
+      productAuditMap[displayName].quantitySold += physicalUnits;
       productAuditMap[displayName].currentStock = stockDisplay;
     });
   });

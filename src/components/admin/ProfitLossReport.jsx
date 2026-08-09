@@ -126,10 +126,26 @@ export const ProfitLossReport = () => {
     if (lower === 'comida' || lower === 'comidas') return 'COMIDAS';
     if (lower === 'cervezas' || lower === 'cerveza') return 'CERVEZAS';
     if (lower === 'licores' || lower === 'licor') return 'LICORES';
-    if (lower.includes('bebida')) return 'BEBIDAS SIN ALCOHOL';
     if (lower === 'chiveria' || lower === 'chivería') return 'CHIVERÍA';
     if (lower === 'promociones') return 'PROMOCIONES';
     return baseName.toUpperCase();
+  };
+
+  // Función para obtener unidades físicas reales (ej. 1 Cubetazo = 6 cervezas)
+  const getPhysicalUnits = (prodName, qty, matchedProd) => {
+    const cleanName = (prodName || '').toLowerCase();
+    const numQty = Number(qty) || 1;
+
+    if (matchedProd?.bundleItems && Array.isArray(matchedProd.bundleItems) && matchedProd.bundleItems.length > 0) {
+      const totalInBundle = matchedProd.bundleItems.reduce((s, b) => s + (Number(b.quantity) || 1), 0);
+      return numQty * totalInBundle;
+    }
+
+    if (cleanName.includes('cubetazo') || cleanName.includes('cubetazo toña') || cleanName.includes('cubetazo clasica') || cleanName.includes('cubetazo tona')) {
+      return numQty * 6;
+    }
+
+    return numQty;
   };
 
   // Desglose de Categorías y Productos del Turno en Vivo
@@ -144,24 +160,37 @@ export const ProfitLossReport = () => {
       const prodName = (item.name || 'Producto').trim();
       const catName = resolveCategoryName(prodName, item.category);
 
+      const matchedProd =
+        (products || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase()) ||
+        (INITIAL_PRODUCTS || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase());
+
+      const physicalUnits = getPhysicalUnits(prodName, qty, matchedProd);
+
       // Categorías
       if (!liveCatMap[catName]) {
         liveCatMap[catName] = { name: catName, totalAmount: 0, totalUnits: 0 };
       }
       liveCatMap[catName].totalAmount += total;
-      liveCatMap[catName].totalUnits += qty;
+      liveCatMap[catName].totalUnits += physicalUnits;
+
+      let displayName = prodName;
+      if (prodName.toLowerCase().includes('cubetazo toña') || prodName.toLowerCase().includes('cubetazo tona')) {
+        displayName = 'CUBETAZO TOÑA (x6 bot.)';
+      } else if (prodName.toLowerCase().includes('cubetazo clasica')) {
+        displayName = 'CUBETAZO CLASICA (x6 bot.)';
+      }
 
       // Productos
-      if (!liveProdMap[prodName]) {
-        liveProdMap[prodName] = {
-          name: prodName,
+      if (!liveProdMap[displayName]) {
+        liveProdMap[displayName] = {
+          name: displayName,
           category: catName,
           quantity: 0,
           totalAmount: 0,
         };
       }
-      liveProdMap[prodName].quantity += qty;
-      liveProdMap[prodName].totalAmount += total;
+      liveProdMap[displayName].quantity += physicalUnits;
+      liveProdMap[displayName].totalAmount += total;
     });
   });
 

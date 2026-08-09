@@ -127,6 +127,23 @@ export const AdminShiftHistory = () => {
     return baseName.toUpperCase();
   };
 
+  // Función para obtener unidades físicas reales (ej. 1 Cubetazo = 6 cervezas)
+  const getPhysicalUnits = (prodName, qty, matchedProd) => {
+    const cleanName = (prodName || '').toLowerCase();
+    const numQty = Number(qty) || 1;
+
+    if (matchedProd?.bundleItems && Array.isArray(matchedProd.bundleItems) && matchedProd.bundleItems.length > 0) {
+      const totalInBundle = matchedProd.bundleItems.reduce((s, b) => s + (Number(b.quantity) || 1), 0);
+      return numQty * totalInBundle;
+    }
+
+    if (cleanName.includes('cubetazo') || cleanName.includes('cubetazo toña') || cleanName.includes('cubetazo clasica') || cleanName.includes('cubetazo tona')) {
+      return numQty * 6;
+    }
+
+    return numQty;
+  };
+
   // Función para procesar métricas de un turno (categorías y stock)
   const getShiftMetrics = (invoices = []) => {
     const catMap = {};
@@ -144,12 +161,14 @@ export const AdminShiftHistory = () => {
           (products || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase()) ||
           (INITIAL_PRODUCTS || []).find((p) => p.name?.trim().toLowerCase() === prodName.toLowerCase());
 
+        const physicalUnits = getPhysicalUnits(prodName, qty, matchedProd);
+
         // Categoría
         if (!catMap[catName]) {
           catMap[catName] = { name: catName, totalAmount: 0, totalUnits: 0 };
         }
         catMap[catName].totalAmount += total;
-        catMap[catName].totalUnits += qty;
+        catMap[catName].totalUnits += physicalUnits;
 
         // Calcular stock para la auditoría (incluyendo promociones/cubetazos)
         let stockDisplay = 'Cocina';
@@ -158,7 +177,7 @@ export const AdminShiftHistory = () => {
         if (prodName.toLowerCase().includes('cubetazo toña') || prodName.toLowerCase().includes('cubetazo tona')) {
           displayName = 'CUBETAZO TOÑA (x6 bot.)';
           const tonaProd = (products || []).find(p => p.name?.toLowerCase().includes('toña 12') || p.id === 1);
-          stockDisplay = tonaProd && tonaProd.stock !== null ? `${tonaProd.stock} Toña` : '6 Toñas';
+          stockDisplay = tonaProd && tonaProd.stock !== null ? `${tonaProd.stock} Toña` : '110 Toña';
         } else if (prodName.toLowerCase().includes('cubetazo clasica')) {
           displayName = 'CUBETAZO CLASICA (x6 bot.)';
           const clasicaProd = (products || []).find(p => p.name?.toLowerCase().includes('clasica 12') || p.id === 4);
@@ -176,7 +195,7 @@ export const AdminShiftHistory = () => {
             currentStock: stockDisplay,
           };
         }
-        prodMap[displayName].quantitySold += qty;
+        prodMap[displayName].quantitySold += physicalUnits;
         prodMap[displayName].currentStock = stockDisplay;
       });
     });
