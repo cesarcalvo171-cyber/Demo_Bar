@@ -183,10 +183,10 @@ export const PaymentModal = ({ table, onClose }) => {
                   {currency === 'USD' && missingAmount === 0 && changeAmount > 0 && (
                     <div className="flex items-center justify-between border-t border-emerald-200/80 pt-2.5">
                       <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                        Vuelto en Córdobas (T/C {exchangeRate || 36.62}):
+                        Vuelto en Córdobas:
                       </span>
                       <span className="text-xl font-black text-emerald-800">
-                        C${(changeAmount * (exchangeRate || 36.62)).toFixed(2)}
+                        C${(changeAmount * (exchangeRate)).toFixed(2)}
                       </span>
                     </div>
                   )}

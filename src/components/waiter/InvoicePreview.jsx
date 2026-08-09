@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Printer, CheckCircle, X } from "lucide-react";
 import { useBar } from "../../context/BarContext";
-import logo from "../../assets/Imagenes/logo.png";
+import logo_f from "../../assets/Imagenes/logofactura.png";
 
 
 export const InvoicePreview = ({ table, items, customerName, paymentDetails, onClose }) => {
@@ -91,26 +91,21 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             }}
           >
             <div style={{ textAlign: "center", marginBottom: "10px" }}>
-              <div style={{ fontSize: "15px", fontWeight: "bold" }}>
+              <div style={{ fontSize: "18px", fontWeight: "bold" }}>
              MONCHOS BAR
               </div>
-              <div style={{ display: "flex",
-    justifyContent: "center",
-    alignItems: "center", }}>
-                <img src={logo} alt=""  className="h-12 w-12 "/>
-
-              </div>
+       
               
               <div
-                style={{ fontSize: "10px", color: "#666", marginTop: "2px" }}
+                style={{ fontSize: "14px", color: "#666", marginTop: "2px" }}
               >
                 Sistema de Gestión de Bar
               </div>
               <div
                 style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
               ></div>
-              <div style={{ fontSize: "11px" }}>Fecha: {dateStr}</div>
-              <div style={{ fontSize: "11px" }}>Hora: {timeStr}</div>
+              <div style={{ fontSize: "14px" }}>Fecha: {dateStr}</div>
+              <div style={{ fontSize: "14px" }}>Hora: {timeStr}</div>
             </div>
             <div
               style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
@@ -148,7 +143,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontWeight: "bold" }}>{isFinal ? "Factura N°:" : "Ref.:"}</span>
-                <span style={{ fontSize: "10px" }}>{invoiceNum}</span>
+                <span style={{ fontSize: "16px" }}>{invoiceNum}</span>
               </div>
             </div>
             <div
@@ -158,7 +153,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                fontSize: "10px",
+                fontSize: "16px",
                 color: "#666",
                 fontWeight: "bold",
                 marginBottom: "5px",
@@ -179,7 +174,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                   justifyContent: "space-between",
                   marginBottom: "5px",
                   alignItems: "flex-start",
-                  fontSize: "12px",
+                  fontSize: "16px",
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -210,7 +205,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: "bold",
-                fontSize: "14px",
+                fontSize: "16px",
                 marginBottom: "10px",
               }}
             >
@@ -235,23 +230,23 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             {isFinal && paymentDetails && (
               <>
                 <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }}></div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                   <span style={{ fontWeight: "bold" }}>Método Pago:</span>
                   <span>{paymentDetails.method}</span>
                 </div>
                 {paymentDetails.method === 'Efectivo' ? (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                       <span style={{ fontWeight: "bold" }}>Recibido ({paymentDetails.currency}):</span>
                       <span>{paymentDetails.currency === 'NIO' ? 'C$' : 'US$'}{paymentDetails.received.toFixed(2)}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                       <span style={{ fontWeight: "bold" }}>Vuelto ({paymentDetails.currency}):</span>
                       <span>{paymentDetails.currency === 'NIO' ? 'C$' : 'US$'}{paymentDetails.change.toFixed(2)}</span>
                     </div>
                   </>
                 ) : (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "3px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                     <span style={{ fontWeight: "bold" }}>Ref/Voucher:</span>
                     <span>{paymentDetails.reference}</span>
                   </div>
@@ -263,7 +258,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
             ></div>
             <div
-              style={{ textAlign: "center", fontSize: "11px", color: "#777" }}
+              style={{ textAlign: "center", fontSize: "13px", color: "#777" }}
             >
               <div>¡Gracias por su {isFinal ? "compra" : "visita"}!</div>
               <div style={{ marginTop: "3px" }}>
