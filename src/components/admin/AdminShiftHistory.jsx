@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
-import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers } from 'lucide-react';
+import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers, TrendingUp } from 'lucide-react';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 
 export const AdminShiftHistory = () => {
@@ -102,32 +102,32 @@ export const AdminShiftHistory = () => {
     <div className="space-y-6 animate-in fade-in duration-300 font-sans">
       
       {/* Dashboard Superior */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {/* Ventas del Día */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-center">
+        <div className="bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-emerald-500/20 p-2 rounded-lg text-emerald-400">
               <Calendar className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Ventas del Día ({currentDayStr})</p>
+            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Ventas del Día ({currentDayStr})</p>
           </div>
-          <h3 className="text-4xl font-black text-white m-0">C${ventasDelDia.toFixed(2)}</h3>
+          <h3 className="text-2xl sm:text-4xl font-black text-white m-0">C${ventasDelDia.toFixed(2)}</h3>
         </div>
 
         {/* Acumulado del Mes */}
-        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-center">
+        <div className="bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400">
-              <TrendingUpIcon />
+              <TrendingUp className="w-5 h-5" />
             </div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Acumulado {currentMonthStr}</p>
+            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Acumulado {currentMonthStr}</p>
           </div>
-          <h3 className="text-4xl font-black text-white m-0">C${acumuladoDelMes.toFixed(2)}</h3>
+          <h3 className="text-2xl sm:text-4xl font-black text-white m-0">C${acumuladoDelMes.toFixed(2)}</h3>
         </div>
       </div>
 
       {/* Historial Mes a Mes */}
-      <div className="space-y-8 mt-8">
+      <div className="space-y-6 sm:space-y-8 mt-6">
         {sortedMonths.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center flex flex-col items-center">
             <Archive className="w-16 h-16 text-slate-200 mb-4" />
@@ -189,19 +189,19 @@ export const AdminShiftHistory = () => {
                         <div className="mt-6 pt-6 border-t border-slate-100 space-y-6 animate-in slide-in-from-top-2">
                           
                           {/* Resumen Financiero y Botón de Reimpresión */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-5 rounded-2xl text-white">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-slate-900 p-4 sm:p-5 rounded-2xl text-white">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Efectivo Total</p>
-                                <p className="text-lg font-black text-emerald-400 m-0">C${shift.totalCash.toFixed(2)}</p>
+                                <p className="text-base sm:text-lg font-black text-emerald-400 m-0">C${shift.totalCash.toFixed(2)}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Tarjeta / Transf.</p>
-                                <p className="text-lg font-black text-blue-400 m-0">C${shift.totalCard.toFixed(2)}</p>
+                                <p className="text-base sm:text-lg font-black text-blue-400 m-0">C${shift.totalCard.toFixed(2)}</p>
                               </div>
-                              <div>
+                              <div className="col-span-2 sm:col-span-1">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Venta Total</p>
-                                <p className="text-lg font-black text-yellow-400 m-0">C${shift.totalSales.toFixed(2)}</p>
+                                <p className="text-base sm:text-lg font-black text-yellow-400 m-0">C${shift.totalSales.toFixed(2)}</p>
                               </div>
                             </div>
 
@@ -218,7 +218,7 @@ export const AdminShiftHistory = () => {
                                   shiftId: shift.id,
                                 });
                               }}
-                              className="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow flex items-center gap-2 transition-all cursor-pointer shrink-0"
+                              className="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 w-full sm:w-auto"
                             >
                               <Printer className="w-4 h-4" />
                               Imprimir Ticket Corte Z
@@ -231,7 +231,7 @@ export const AdminShiftHistory = () => {
                               <Layers className="w-4 h-4 text-slate-400" />
                               Ventas por Categoría ({categoryList.length})
                             </h5>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                               {categoryList.map(cat => (
                                 <div key={cat.name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
                                   <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">{cat.name}</span>

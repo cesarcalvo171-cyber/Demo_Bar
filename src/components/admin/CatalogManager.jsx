@@ -272,12 +272,12 @@ export const CatalogManager = () => {
       {/* Columna Derecha: Listado Filtrado */}
       <div className="w-full lg:w-2/3 flex flex-col gap-4">
         {/* Pestañas de Categorías */}
-        <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+        <div className="flex overflow-x-auto gap-2 border-b border-slate-200 pb-2 scrollbar-none">
           {activeCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors cursor-pointer ${
+              className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-t-xl transition-all shrink-0 cursor-pointer ${
                 selectedCategory === cat.id
                   ? 'bg-black text-yellow-500 border-t border-l border-r border-slate-200'
                   : 'bg-transparent text-slate-500 hover:text-slate-800'

@@ -45,19 +45,19 @@ export const Inventory = () => {
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Sidebar Categorías */}
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        {/* Categorías (Horizontal en móviles, Sidebar en desktop) */}
         <div className="w-full lg:w-64 shrink-0">
-          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 px-2">Categorías</h3>
-          <div className="flex flex-col gap-1">
+          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">Categorías</h3>
+          <div className="flex flex-row overflow-x-auto lg:flex-col gap-1.5 pb-2 lg:pb-0 scrollbar-none">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                selectedCategory === 'all' ? 'bg-slate-900 text-yellow-500 shadow-md' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center justify-between gap-2 px-3.5 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                selectedCategory === 'all' ? 'bg-slate-900 text-yellow-500 shadow-sm' : 'bg-white lg:bg-transparent text-slate-600 hover:bg-slate-100 border border-slate-200 lg:border-transparent'
               }`}
             >
               <span>Todos</span>
-              <span className={`text-[11px] font-bold ${selectedCategory === 'all' ? 'text-blue-100' : 'text-slate-400'}`}>
+              <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full ${selectedCategory === 'all' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-100 text-slate-500'}`}>
                 {inventoryProducts.length}
               </span>
             </button>
@@ -66,12 +66,12 @@ export const Inventory = () => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                  selectedCategory === cat.id ? 'bg-slate-900 text-yellow-500 shadow-md' : 'text-slate-600 hover:bg-slate-100'
+                className={`flex items-center justify-between gap-2 px-3.5 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                  selectedCategory === cat.id ? 'bg-slate-900 text-yellow-500 shadow-sm' : 'bg-white lg:bg-transparent text-slate-600 hover:bg-slate-100 border border-slate-200 lg:border-transparent'
                 }`}
               >
                 <span>{cat.name}</span>
-                <span className={`text-[11px] font-bold ${selectedCategory === cat.id ? 'text-blue-100' : 'text-slate-400'}`}>
+                <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full ${selectedCategory === cat.id ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-100 text-slate-500'}`}>
                   {categoryCounts[cat.id] || 0}
                 </span>
               </button>
@@ -80,7 +80,7 @@ export const Inventory = () => {
         </div>
 
         {/* Grilla de Tarjetas */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 items-start content-start">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 items-start content-start">
           {filteredProducts.map(product => {
             const isLow = product.stock !== null && product.stock <= 20; // umbral de prueba
             

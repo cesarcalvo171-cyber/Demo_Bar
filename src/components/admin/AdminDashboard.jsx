@@ -1,20 +1,11 @@
 import React from 'react';
 import { useBar } from '../../context/BarContext';
-import { 
-  DollarSign, 
-  Receipt, 
-  Users, 
-  DollarSign as DollarIcon, 
-  Activity, 
-  UtensilsCrossed, 
-  Layers, 
-  AlertTriangle 
-} from 'lucide-react';
+import { DollarSign, Receipt, ShoppingCart, Archive, Users, DollarSign as DollarIcon, RefreshCcw, TrendingUp } from 'lucide-react';
 
 export const AdminDashboard = () => {
-  const { paidInvoices, products, cashRegisterHistory, users, exchangeRate, updateExchangeRate, tables } = useBar();
+  const { paidInvoices, products, cashRegisterHistory, users, exchangeRate, updateExchangeRate } = useBar();
 
-  // 1. Facturas históricas consolidadas
+  // Cálculo histórico total (cierres pasados + turno actual)
   const pastInvoices = cashRegisterHistory.flatMap(c => c.invoices || []);
   const allInvoices = [...paidInvoices, ...pastInvoices];
 
@@ -22,15 +13,6 @@ export const AdminDashboard = () => {
   const totalCashSales = allInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
   const totalCardSales = allInvoices.filter(i => i.paymentMethod !== 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
 
-  // 2. Métricas en Tiempo Real (Turno Activo)
-  const currentShiftSales = paidInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
-
-  // 3. Mesas Ocupadas en Tiempo Real (Suma al ocupar, disminuye al cerrar/cobrar)
-  const occupiedTables = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago' || (t.items && t.items.length > 0));
-  const occupiedCount = occupiedTables.length;
-  const totalTablesCount = tables.length;
-
-  // 4. Inventario Crítico
   const getLowStockThreshold = (category) => {
     switch (category?.toLowerCase()) {
       case 'cervezas': return 45;
@@ -40,6 +22,7 @@ export const AdminDashboard = () => {
     }
   };
 
+  // Productos con bajo stock que sí manejan inventario
   const lowStockProducts = products.filter(p => {
     if (p.stock === null) return false;
     const threshold = getLowStockThreshold(p.category);
@@ -47,83 +30,57 @@ export const AdminDashboard = () => {
   });
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6">
 
-      {/* Tarjetas Principales del Admin (4 Columnas) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Tarjetas Principales del Admin */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         
-        {/* 1. Tasa de Cambio */}
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-700 shadow-md flex flex-col justify-center gap-2.5">
+        {/* Tasa de Cambio */}
+        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-center gap-3">
           <div className="flex items-center gap-2">
             <DollarIcon className="w-5 h-5 text-yellow-500" />
-            <p className="text-xs font-bold text-yellow-500 uppercase tracking-wider m-0">Tasa de Cambio</p>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Tasa de Cambio</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 font-bold text-sm">C$</span>
+            <span className="text-slate-400 font-bold">C$</span>
             <input 
               type="number" 
               value={exchangeRate || ''}
               onChange={(e) => updateExchangeRate(e.target.value)}
               step="0.01"
-              className="w-full bg-slate-800 text-white font-bold px-3 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:border-yellow-500 transition-colors text-sm"
+              className="w-full bg-slate-800 text-white font-bold px-3 py-1.5 rounded border border-slate-700 focus:outline-none focus:border-yellow-500 transition-colors"
               placeholder="Ej. 36.62"
             />
           </div>
         </div>
 
-        {/* 2. Ventas en Vivo (Turno Actual) */}
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-700 shadow-md flex items-center gap-4 relative overflow-hidden">
-          <div className="bg-emerald-500/20 p-3 rounded-xl text-emerald-400">
-            <Activity className="w-6 h-6 animate-pulse" />
+        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="text-yellow-500 p-3">
+            <DollarSign className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider m-0">Ventas en Vivo (Turno)</p>
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            </div>
-            <h3 className="text-2xl font-black text-emerald-400 m-0 mt-0.5">C${currentShiftSales.toFixed(2)}</h3>
-            <p className="text-[11px] text-slate-400 m-0 mt-0.5 font-medium">{paidInvoices.length} facturas cobradas hoy</p>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Ventas Históricas</p>
+            <h3 className="text-xl font-extrabold text-white m-0">C${totalHistoricalSales.toFixed(2)}</h3>
           </div>
         </div>
 
-        {/* 3. Mesas Ocupadas (Dinámico en Vivo) */}
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-700 shadow-md flex items-center gap-4">
-          <div className="bg-amber-500/20 p-3 rounded-xl text-amber-400">
-            <UtensilsCrossed className="w-6 h-6" />
+        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="text-yellow-500 p-3">
+            <Users className="w-6 h-6 text-yellow-500" />
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider m-0">Mesas Ocupadas</p>
-            <h3 className="text-2xl font-black text-amber-400 m-0 mt-0.5">
-              {occupiedCount} {occupiedCount === 1 ? 'mesa' : 'mesas'}
-            </h3>
-            <p className="text-[11px] text-slate-400 m-0 mt-0.5 font-medium">
-              {occupiedCount > 0 ? `${occupiedCount} de ${totalTablesCount} mesas activas` : 'Todas las mesas libres'}
-            </p>
+            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Personal Activo</p>
+            <h3 className="text-xl font-extrabold text-white m-0">{users.length} usuarios</h3>
           </div>
         </div>
-
-        {/* 4. Ventas Históricas Totales */}
-        <div className="bg-slate-900 p-5 rounded-2xl border border-slate-700 shadow-md flex items-center gap-4">
-          <div className="bg-yellow-500/20 p-3 rounded-xl text-yellow-500">
-            <DollarSign className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider m-0">Ventas Históricas</p>
-            <h3 className="text-2xl font-black text-white m-0 mt-0.5">C${totalHistoricalSales.toFixed(2)}</h3>
-            <p className="text-[11px] text-slate-400 m-0 mt-0.5 font-medium">{users.length} usuarios en sistema</p>
-          </div>
-        </div>
-
       </div>
 
       {/* Fila 2: Desglose de Pagos y Alertas de Inventario */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         {/* Resumen Financiero Efectivo vs Tarjeta */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 m-0 flex items-center justify-between">
-            <span>Balance de Métodos de Pago</span>
-            <span className="text-[11px] text-slate-400 font-semibold">Histórico</span>
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 m-0">
+            Balance General de Métodos de Pago
           </h3>
 
           <div className="space-y-3">
@@ -139,7 +96,7 @@ export const AdminDashboard = () => {
 
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
               <div>
-                <span className="text-xs font-bold text-blue-800 uppercase block">Total Tarjetas / Transf.</span>
+                <span className="text-xs font-bold text-blue-800 uppercase block">Total Tarjetas / Vouchers</span>
                 <span className="text-xl font-extrabold text-blue-900">C${totalCardSales.toFixed(2)}</span>
               </div>
               <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full">
@@ -149,8 +106,8 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Panel de Alertas de Stock (Inventario Crítico) */}
-        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        {/* Panel de Alertas de Stock Urgentes */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 m-0 flex items-center justify-between">
             <span>Productos por Agotarse (Inventario Crítico)</span>
             <span className="text-xs text-amber-600 font-semibold">{lowStockProducts.length} productos bajo su límite</span>
@@ -177,7 +134,6 @@ export const AdminDashboard = () => {
           )}
         </div>
       </div>
-
     </div>
   );
 };

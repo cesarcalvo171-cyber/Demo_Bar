@@ -260,15 +260,36 @@ export const BarProvider = ({ children }) => {
           const items = (invItemsData || [])
             .filter((i) => i.invoice_id === inv.id)
             .map((i) => {
+              const cleanItemName = (i.product_name || "").trim().toLowerCase();
               const pMatch = (productsData || []).find(
-                (p) => p.name?.trim().toLowerCase() === i.product_name?.trim().toLowerCase()
+                (p) => p.name?.trim().toLowerCase() === cleanItemName
+              ) || (INITIAL_PRODUCTS || []).find(
+                (p) => p.name?.trim().toLowerCase() === cleanItemName
               );
+
+              let resolvedCat = pMatch?.category;
+              if (!resolvedCat || resolvedCat === "General" || resolvedCat === "general") {
+                if (cleanItemName.includes("toña") || cleanItemName.includes("clasica") || cleanItemName.includes("spark") || cleanItemName.includes("heineken") || cleanItemName.includes("miller") || cleanItemName.includes("sol") || cleanItemName.includes("bambu") || cleanItemName.includes("smirnof")) {
+                  resolvedCat = "cervezas";
+                } else if (cleanItemName.includes("nachos") || cleanItemName.includes("alitas") || cleanItemName.includes("salchipapa") || cleanItemName.includes("hamburguesa") || cleanItemName.includes("hot dog") || cleanItemName.includes("consume") || cleanItemName.includes("toston")) {
+                  resolvedCat = "comida";
+                } else if (cleanItemName.includes("reserva") || cleanItemName.includes("lite") || cleanItemName.includes("plata") || cleanItemName.includes("ron") || cleanItemName.includes("licor")) {
+                  resolvedCat = "licores";
+                } else if (cleanItemName.includes("chubby") || cleanItemName.includes("gatorade") || cleanItemName.includes("power") || cleanItemName.includes("agua") || cleanItemName.includes("pepsi") || cleanItemName.includes("lipton")) {
+                  resolvedCat = "Bebida sin alcohol";
+                } else if (cleanItemName.includes("chiveria") || cleanItemName.includes("snack")) {
+                  resolvedCat = "chiveria";
+                } else {
+                  resolvedCat = "General";
+                }
+              }
+
               return {
                 name: i.product_name,
                 quantity: i.quantity,
                 price: Number(i.price_at_sale),
                 cost: Number(i.cost_at_sale),
-                category: pMatch?.category || "General",
+                category: resolvedCat,
               };
             });
           return {
