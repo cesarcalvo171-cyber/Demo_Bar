@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
-import { INITIAL_PRODUCTS, INITIAL_TABLES } from "../mock/initialData";
+import { INITIAL_PRODUCTS, INITIAL_TABLES, CATEGORIES } from "../mock/initialData";
 
 const BarContext = createContext();
 const SESSION_KEY = "bar_active_session_v1";
@@ -23,6 +23,7 @@ export const BarProvider = ({ children }) => {
   const [currentRole, setCurrentRole] = useState(currentUser?.role || "mesero");
 
   const [users, setUsers] = useState([]);
+  const [categories, setCategories] = useState(CATEGORIES);
   const [tables, setTables] = useState(INITIAL_TABLES);
   const [products, setProducts] = useState([]);
   const [paidInvoices, setPaidInvoices] = useState([]);
@@ -47,6 +48,18 @@ export const BarProvider = ({ children }) => {
       if (settingsData) {
         const rate = settingsData.find((s) => s.key === "exchange_rate");
         if (rate) setExchangeRate(rate.value);
+      }
+
+      // Fetch Categories from Supabase
+      const { data: categoriesData } = await supabase.from("categories").select("*");
+      if (categoriesData && categoriesData.length > 0) {
+        setCategories(
+          categoriesData.map((c) => ({
+            id: c.id,
+            name: c.name,
+            icon: c.icon || "MdLocalOffer",
+          }))
+        );
       }
 
       // Fetch Users
@@ -345,6 +358,11 @@ export const BarProvider = ({ children }) => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "invoices" },
+        triggerSync,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "categories" },
         triggerSync,
       )
       .subscribe();
@@ -985,6 +1003,7 @@ export const BarProvider = ({ children }) => {
         logout,
         addNewTable,
         deleteTable,
+        categories,
       }}
     >
       {children}

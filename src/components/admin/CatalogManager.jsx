@@ -6,9 +6,10 @@ import { Modal } from '../common/Modal';
 import { CATEGORIES } from '../../mock/initialData';
 
 export const CatalogManager = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useBar();
+  const { products, addProduct, updateProduct, deleteProduct, categories } = useBar();
+  const activeCategories = categories && categories.length > 0 ? categories : CATEGORIES;
   const [editingProduct, setEditingProduct] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].id);
+  const [selectedCategory, setSelectedCategory] = useState(activeCategories[0]?.id || "cervezas");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -48,7 +49,7 @@ export const CatalogManager = () => {
             enableReinitialize
             initialValues={{
               name: editingProduct ? editingProduct.name : '',
-              category: editingProduct ? editingProduct.category : CATEGORIES[0].id,
+              category: editingProduct ? editingProduct.category : (activeCategories[0]?.id || 'cervezas'),
               price: editingProduct ? editingProduct.price : '',
               cost: editingProduct ? (editingProduct.cost || '') : '',
               stock: editingProduct ? (editingProduct.stock === null ? '' : editingProduct.stock) : '',
@@ -163,7 +164,7 @@ export const CatalogManager = () => {
                       name="category"
                       className="w-full p-2 border border-slate-300 rounded text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
-                      {CATEGORIES.map(cat => (
+                      {activeCategories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </Field>
@@ -272,7 +273,7 @@ export const CatalogManager = () => {
       <div className="w-full lg:w-2/3 flex flex-col gap-4">
         {/* Pestañas de Categorías */}
         <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
-          {CATEGORIES.map(cat => (
+          {activeCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}

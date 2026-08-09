@@ -5,11 +5,11 @@ dotenv.config();
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
 
 async function check() {
-  const { data: orders } = await supabase.from('orders').select('*');
-  const { data: tables } = await supabase.from('tables').select('*');
-  console.log("Orders count:", orders?.length);
-  console.log("Tables count:", tables?.length);
-  console.log("Occupied tables:", tables?.filter(t => t.status === 'ocupada'));
-  console.log("All orders:", orders);
+  const { data: categories, error } = await supabase.from('categories').select('*');
+  console.log("Categories in Supabase:", categories);
+  console.log("Error if any:", error);
+  const { data: products } = await supabase.from('products').select('id, name, category_id');
+  const distinctCategories = [...new Set(products?.map(p => p.category_id))];
+  console.log("Distinct product category_ids:", distinctCategories);
 }
 check();

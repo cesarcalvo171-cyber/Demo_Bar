@@ -20,7 +20,8 @@ export const ProductCatalog = ({
   currentOrderItems,
   search,
 }) => {
-  const { products } = useBar();
+  const { products, categories } = useBar();
+  const activeCategories = categories && categories.length > 0 ? categories : CATEGORIES;
 
   const normalize = (text = "") =>
     text
@@ -30,7 +31,8 @@ export const ProductCatalog = ({
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
-      selectedCategory === "todos" || product.category === selectedCategory;
+      selectedCategory === "todos" ||
+      String(product.category).toLowerCase() === String(selectedCategory).toLowerCase();
 
     const matchesSearch = normalize(product.name).includes(normalize(search));
 
@@ -49,10 +51,10 @@ export const ProductCatalog = ({
         return <GlassWater className="w-4 h-4" />;
       case "RiDrinks2Fill":
         return <RiDrinks2Fill className="w-4 h-4" />;
-        case "MdLocalOffer":
+      case "MdLocalOffer":
         return <MdLocalOffer className="w-4 h-4" />;
       default:
-        return <Utensils className="w-4 h-4" />;
+        return <MdLocalOffer className="w-4 h-4" />;
     }
   };
 
@@ -63,10 +65,10 @@ export const ProductCatalog = ({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-[#1a1d27]">
-      {/* Botones de Categorías */}
+      {/* Botones de Categorías Dinámicas */}
       {search.trim() === "" && (
         <div className="flex flex-wrap gap-2.5 mb-5 pb-4 border-b border-slate-700/50 pt-2">
-          {CATEGORIES.map((cat) => (
+          {activeCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}

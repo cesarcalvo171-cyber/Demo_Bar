@@ -6,24 +6,25 @@ import { Modal } from '../common/Modal';
 import { CATEGORIES } from '../../mock/initialData';
 
 export const Inventory = () => {
-  const { products, updateStock } = useBar();
+  const { products, updateStock, categories } = useBar();
+  const activeCategories = categories && categories.length > 0 ? categories : CATEGORIES;
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Excluir comidas de la gestión de inventario
-  const inventoryProducts = products.filter(p => p.category !== 'comida');
+  const inventoryProducts = products.filter(p => String(p.category).toLowerCase() !== 'comida');
 
   // Filtrado
   const filteredProducts = inventoryProducts.filter(p => {
-    const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
+    const matchCat = selectedCategory === 'all' || String(p.category).toLowerCase() === String(selectedCategory).toLowerCase();
     const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchCat && matchSearch;
   });
 
   // Conteos
-  const categoryCounts = CATEGORIES.filter(c => c.id !== 'comida').reduce((acc, cat) => {
-    acc[cat.id] = inventoryProducts.filter(p => p.category === cat.id).length;
+  const categoryCounts = activeCategories.filter(c => String(c.id).toLowerCase() !== 'comida').reduce((acc, cat) => {
+    acc[cat.id] = inventoryProducts.filter(p => String(p.category).toLowerCase() === String(cat.id).toLowerCase()).length;
     return acc;
   }, {});
 
@@ -61,7 +62,7 @@ export const Inventory = () => {
               </span>
             </button>
 
-            {CATEGORIES.filter(c => c.id !== 'comida').map(cat => (
+            {activeCategories.filter(c => String(c.id).toLowerCase() !== 'comida').map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
