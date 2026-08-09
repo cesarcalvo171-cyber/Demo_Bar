@@ -259,12 +259,18 @@ export const BarProvider = ({ children }) => {
         const allMappedInvoices = (invData || []).map((inv) => {
           const items = (invItemsData || [])
             .filter((i) => i.invoice_id === inv.id)
-            .map((i) => ({
-              name: i.product_name,
-              quantity: i.quantity,
-              price: Number(i.price_at_sale),
-              cost: Number(i.cost_at_sale),
-            }));
+            .map((i) => {
+              const pMatch = (productsData || []).find(
+                (p) => p.name?.trim().toLowerCase() === i.product_name?.trim().toLowerCase()
+              );
+              return {
+                name: i.product_name,
+                quantity: i.quantity,
+                price: Number(i.price_at_sale),
+                cost: Number(i.cost_at_sale),
+                category: pMatch?.category || "General",
+              };
+            });
           return {
             id: inv.id,
             shiftId: inv.shift_id,
@@ -293,23 +299,29 @@ export const BarProvider = ({ children }) => {
         // History logic
         const closedShifts = shiftsData.filter((s) => s.closed_at);
         setCashRegisterHistory(
-          closedShifts.map((cs) => ({
-            id: cs.id,
-            startTime: cs.opened_at,
-            endTime: cs.closed_at,
-            totalSales: Number(cs.total_real || cs.total_expected),
-            totalCash: allMappedInvoices
-              .filter(
-                (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
-              )
-              .reduce((s, i) => s + i.total, 0),
-            totalCard: allMappedInvoices
-              .filter(
-                (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
-              )
-              .reduce((s, i) => s + i.total, 0),
-            invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
-          })),
+          closedShifts.map((cs) => {
+            const cashier = (usersData || []).find(
+              (u) => u.id === cs.closed_by || u.id === cs.opened_by
+            );
+            return {
+              id: cs.id,
+              cashierName: cashier?.name || "Cajero Principal",
+              startTime: cs.opened_at,
+              endTime: cs.closed_at,
+              totalSales: Number(cs.total_real || cs.total_expected),
+              totalCash: allMappedInvoices
+                .filter(
+                  (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
+                )
+                .reduce((s, i) => s + i.total, 0),
+              totalCard: allMappedInvoices
+                .filter(
+                  (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
+                )
+                .reduce((s, i) => s + i.total, 0),
+              invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
+            };
+          }),
         );
       }
 

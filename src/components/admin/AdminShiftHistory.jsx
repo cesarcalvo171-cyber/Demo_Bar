@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
-import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt } from 'lucide-react';
+import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers } from 'lucide-react';
+import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 
 export const AdminShiftHistory = () => {
-  const { cashRegisterHistory } = useBar();
+  const { cashRegisterHistory, products, categories } = useBar();
   const [expandedShift, setExpandedShift] = useState(null);
 
   // Funciones de utilidad para fechas
@@ -30,10 +31,10 @@ export const AdminShiftHistory = () => {
     const shiftDay = getDay(shift.endTime);
     
     if (shiftMonth === currentMonthStr) {
-      acumuladoDelMes += shift.totalSales;
+      acumuladoDelMes += (Number(shift.totalSales) || 0);
     }
     if (shiftDay === currentDayStr) {
-      ventasDelDia += shift.totalSales;
+      ventasDelDia += (Number(shift.totalSales) || 0);
     }
   });
 
@@ -45,8 +46,57 @@ export const AdminShiftHistory = () => {
     return acc;
   }, {});
 
-  // Ordenar meses (esto es simple ya que asume inserción, pero en la vida real se ordena por fecha)
-  const sortedMonths = Object.keys(groupedByMonth); // El historial ya viene ordenado de más nuevo a viejo por context
+  const sortedMonths = Object.keys(groupedByMonth);
+
+  // Función para procesar métricas de un turno (categorías y stock)
+  const getShiftMetrics = (invoices = []) => {
+    const catMap = {};
+    const prodMap = {};
+
+    invoices.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        const qty = Number(item.quantity) || 1;
+        const price = Number(item.price) || 0;
+        const total = price * qty;
+        const prodName = (item.name || 'Producto').trim();
+
+        const matchedProd = (products || []).find(
+          p => p.name?.trim().toLowerCase() === prodName.toLowerCase()
+        );
+        const catId = item.category || matchedProd?.category || 'General';
+        const catObj = (categories || []).find(
+          c => c.id?.toLowerCase() === catId.toLowerCase()
+        );
+        const catName = (catObj?.name || catId).toUpperCase();
+
+        // Categoría
+        if (!catMap[catName]) {
+          catMap[catName] = { name: catName, totalAmount: 0, totalUnits: 0 };
+        }
+        catMap[catName].totalAmount += total;
+        catMap[catName].totalUnits += qty;
+
+        // Producto
+        if (!prodMap[prodName]) {
+          prodMap[prodName] = {
+            name: prodName,
+            category: catName,
+            quantitySold: 0,
+            currentStock:
+              matchedProd && matchedProd.stock !== null && matchedProd.category !== 'comida'
+                ? `${matchedProd.stock} unid.`
+                : 'Cocina',
+          };
+        }
+        prodMap[prodName].quantitySold += qty;
+      });
+    });
+
+    return {
+      categoryList: Object.values(catMap).sort((a, b) => b.totalAmount - a.totalAmount),
+      productList: Object.values(prodMap).sort((a, b) => b.quantitySold - a.quantitySold),
+    };
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 font-sans">
@@ -100,95 +150,180 @@ export const AdminShiftHistory = () => {
 
               {/* Lista de Cierres (Días) */}
               <div className="divide-y divide-slate-100">
-                {groupedByMonth[month].map(shift => (
-                  <div key={shift.id} className="p-4 sm:p-6 transition-colors hover:bg-slate-50/50">
-                    <div 
-                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer"
-                      onClick={() => setExpandedShift(expandedShift === shift.id ? null : shift.id)}
-                    >
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                            {getDay(shift.endTime)}
-                          </span>
-                          <span className="text-slate-400 text-xs font-semibold">{new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                {groupedByMonth[month].map(shift => {
+                  const isExpanded = expandedShift === shift.id;
+                  const { categoryList, productList } = isExpanded ? getShiftMetrics(shift.invoices) : { categoryList: [], productList: [] };
+
+                  return (
+                    <div key={shift.id} className="p-4 sm:p-6 transition-colors hover:bg-slate-50/50">
+                      <div 
+                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer"
+                        onClick={() => setExpandedShift(isExpanded ? null : shift.id)}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                              {getDay(shift.endTime)}
+                            </span>
+                            <span className="text-slate-400 text-xs font-semibold">
+                              {new Date(shift.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                          </div>
+                          <h4 className="text-base font-bold text-slate-800 m-0">Turno de {shift.cashierName || 'Cajero'}</h4>
+                          <p className="text-xs text-slate-500 m-0 mt-1">{shift.invoices.length} facturas emitidas</p>
                         </div>
-                        <h4 className="text-base font-bold text-slate-800 m-0">Turno de {shift.cashierName}</h4>
-                        <p className="text-xs text-slate-500 m-0 mt-1">{shift.invoices.length} facturas emitidas</p>
+
+                        <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
+                          <div className="text-right">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide m-0 mb-0.5">Venta Total</p>
+                            <p className="text-lg font-black text-emerald-600 m-0">C${shift.totalSales.toFixed(2)}</p>
+                          </div>
+                          <div className="text-slate-400">
+                            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                        <div className="text-right">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide m-0 mb-0.5">Venta Total</p>
-                          <p className="text-lg font-black text-emerald-600 m-0">C${shift.totalSales.toFixed(2)}</p>
+                      {/* Desplegable Completo del Turno */}
+                      {isExpanded && (
+                        <div className="mt-6 pt-6 border-t border-slate-100 space-y-6 animate-in slide-in-from-top-2">
+                          
+                          {/* Resumen Financiero y Botón de Reimpresión */}
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 p-5 rounded-2xl text-white">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Efectivo Total</p>
+                                <p className="text-lg font-black text-emerald-400 m-0">C${shift.totalCash.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Tarjeta / Transf.</p>
+                                <p className="text-lg font-black text-blue-400 m-0">C${shift.totalCard.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Venta Total</p>
+                                <p className="text-lg font-black text-yellow-400 m-0">C${shift.totalSales.toFixed(2)}</p>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                printShiftCloseReceipt({
+                                  invoices: shift.invoices,
+                                  cashierName: shift.cashierName || 'Cajero Principal',
+                                  startTime: shift.startTime,
+                                  endTime: shift.endTime,
+                                  products,
+                                  categories,
+                                  shiftId: shift.id,
+                                });
+                              }}
+                              className="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow flex items-center gap-2 transition-all cursor-pointer shrink-0"
+                            >
+                              <Printer className="w-4 h-4" />
+                              Imprimir Ticket Corte Z
+                            </button>
+                          </div>
+
+                          {/* Ventas por Categorías */}
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <Layers className="w-4 h-4 text-slate-400" />
+                              Ventas por Categoría ({categoryList.length})
+                            </h5>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                              {categoryList.map(cat => (
+                                <div key={cat.name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">{cat.name}</span>
+                                  <p className="text-base font-black text-slate-900 m-0 mt-0.5">C${cat.totalAmount.toFixed(2)}</p>
+                                  <span className="text-xs font-bold text-emerald-600">{cat.totalUnits} unidades vendidas</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Auditoría de Inventario: Vendido vs Stock Restante */}
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <Package className="w-4 h-4 text-slate-400" />
+                              Auditoría de Inventario (Vendido en Turno vs Stock Restante)
+                            </h5>
+                            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                              <div className="max-h-60 overflow-y-auto">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200">
+                                    <tr>
+                                      <th className="py-2.5 px-4">Producto</th>
+                                      <th className="py-2.5 px-4 text-center">Unid. Vendidas</th>
+                                      <th className="py-2.5 px-4 text-right">Stock Actual en Sistema</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {productList.map(prod => (
+                                      <tr key={prod.name} className="hover:bg-slate-50/80">
+                                        <td className="py-2.5 px-4 font-semibold text-slate-800">{prod.name}</td>
+                                        <td className="py-2.5 px-4 text-center font-bold text-emerald-600">
+                                          {prod.quantitySold}
+                                        </td>
+                                        <td className="py-2.5 px-4 text-right font-bold text-slate-600">
+                                          {prod.currentStock}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desglose de Facturas Individuales */}
+                          <div>
+                            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <Receipt className="w-4 h-4 text-slate-400" />
+                              Facturas del Turno ({shift.invoices.length})
+                            </h5>
+                            
+                            {shift.invoices.length === 0 ? (
+                              <p className="text-sm text-slate-500 italic">No hubo facturas en este turno.</p>
+                            ) : (
+                              <div className="overflow-x-auto bg-white border border-slate-200 rounded-xl">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
+                                    <tr>
+                                      <th className="py-2.5 px-4">Factura</th>
+                                      <th className="py-2.5 px-4">Mesa / Barra</th>
+                                      <th className="py-2.5 px-4">Método</th>
+                                      <th className="py-2.5 px-4">Hora</th>
+                                      <th className="py-2.5 px-4 text-right">Monto</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {shift.invoices.map(inv => (
+                                      <tr key={inv.id} className="text-slate-600 hover:bg-slate-50">
+                                        <td className="py-2.5 px-4 font-mono font-medium">{inv.id}</td>
+                                        <td className="py-2.5 px-4 font-semibold">{inv.tableName}</td>
+                                        <td className="py-2.5 px-4">
+                                          <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                            inv.paymentMethod === 'Efectivo' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                                          }`}>
+                                            {inv.paymentMethod}
+                                          </span>
+                                        </td>
+                                        <td className="py-2.5 px-4 text-slate-400">{inv.date}</td>
+                                        <td className="py-2.5 px-4 text-right font-black text-slate-900">C${inv.total.toFixed(2)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+
                         </div>
-                        <div className="text-slate-400">
-                          {expandedShift === shift.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </div>
-                      </div>
+                      )}
                     </div>
-
-                    {/* Desplegable de Facturas */}
-                    {expandedShift === shift.id && (
-                      <div className="mt-6 pt-6 border-t border-slate-100 animate-in slide-in-from-top-2">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-xl">
-                          <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Efectivo Total</p>
-                            <p className="text-sm font-bold text-slate-700 m-0">C${shift.totalCash.toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Tarjeta/Transf. Total</p>
-                            <p className="text-sm font-bold text-slate-700 m-0">C${shift.totalCard.toFixed(2)}</p>
-                          </div>
-                          <div className="hidden sm:block">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">ID Cierre</p>
-                            <p className="text-xs font-mono text-slate-500 m-0">{shift.id}</p>
-                          </div>
-                        </div>
-
-                        <h5 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Receipt className="w-4 h-4 text-slate-400" />
-                          Desglose de Facturas ({shift.invoices.length})
-                        </h5>
-                        
-                        {shift.invoices.length === 0 ? (
-                          <p className="text-sm text-slate-500 italic">No hubo facturas en este turno.</p>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs">
-                              <thead>
-                                <tr className="text-slate-400 border-b border-slate-100">
-                                  <th className="pb-2 font-semibold">Factura</th>
-                                  <th className="pb-2 font-semibold">Mesa</th>
-                                  <th className="pb-2 font-semibold">Método</th>
-                                  <th className="pb-2 font-semibold">Hora</th>
-                                  <th className="pb-2 font-semibold text-right">Monto</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-50">
-                                {shift.invoices.map(inv => (
-                                  <tr key={inv.id} className="text-slate-600 hover:bg-slate-50">
-                                    <td className="py-2 font-medium">{inv.id}</td>
-                                    <td className="py-2">{inv.tableName}</td>
-                                    <td className="py-2">
-                                      <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                        inv.paymentMethod === 'Efectivo' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                                      }`}>
-                                        {inv.paymentMethod}
-                                      </span>
-                                    </td>
-                                    <td className="py-2 text-slate-400">{inv.date}</td>
-                                    <td className="py-2 text-right font-bold text-slate-800">C${inv.total.toFixed(2)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))

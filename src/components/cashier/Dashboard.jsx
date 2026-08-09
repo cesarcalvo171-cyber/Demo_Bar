@@ -1,17 +1,29 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useBar } from '../../context/BarContext';
 import { DollarSign, Receipt, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
+import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 
 export const Dashboard = () => {
-  const { paidInvoices, shiftStartTime, tables, closeShift, currentUser } = useBar();
-  const printRef = useRef(null);
+  const { paidInvoices, shiftStartTime, tables, closeShift, currentUser, products, categories, currentShiftId } = useBar();
 
   const totalInvoicesCount = paidInvoices.length;
-  const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + inv.total, 0);
-  const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Efectivo').reduce((sum, inv) => sum + inv.total, 0);
+  const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+  const totalCard = paidInvoices.filter(i => i.paymentMethod !== 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
   const totalSales = totalCash + totalCard;
 
   const activeTablesCount = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago').length;
+
+  const handlePrintZReceipt = () => {
+    printShiftCloseReceipt({
+      invoices: paidInvoices,
+      cashierName: currentUser?.name || 'Cajero Principal',
+      startTime: shiftStartTime,
+      endTime: new Date(),
+      products,
+      categories,
+      shiftId: currentShiftId || '',
+    });
+  };
 
   const handleCloseShift = () => {
     if (activeTablesCount > 0) {
@@ -19,61 +31,10 @@ export const Dashboard = () => {
       return;
     }
 
-    if (window.confirm('¿Estás seguro que deseas realizar el Cierre de Caja? Esto transferirá los datos al historial del Administrador y pondrá tu caja en C$0.00.')) {
-      printZReceipt();
+    if (window.confirm('¿Estás seguro que deseas realizar el Cierre de Caja? Esto imprimirá el Corte Z completo (totales por categoría y auditoría de inventario), transferirá los datos al Administrador y pondrá la caja en C$0.00.')) {
+      handlePrintZReceipt();
       closeShift();
       alert('Caja cerrada con éxito. ¡Buen turno!');
-    }
-  };
-
-  const printZReceipt = () => {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("es-NI", { day: "2-digit", month: "long", year: "numeric" });
-    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    const printContent = `
-      <div style="text-align: center; margin-bottom: 10px;">
-        <div style="font-size: 15px; font-weight: bold;">DEMO BAR</div>
-        <div style="font-size: 10px; color: #666; margin-top: 2px;">Cierre de Caja (Corte Z)</div>
-        <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
-        <div style="font-size: 11px;">Fecha: ${dateStr}</div>
-        <div style="font-size: 11px;">Hora: ${timeStr}</div>
-        <div style="font-size: 11px;">Cajero: ${currentUser?.name || 'Cajero'}</div>
-      </div>
-      <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
-      <div style="margin-bottom: 8px; font-size: 12px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-          <span style="font-weight: bold;">Total Facturas:</span>
-          <span>${totalInvoicesCount}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-          <span style="font-weight: bold;">Total Efectivo:</span>
-          <span>C$${totalCash.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-          <span style="font-weight: bold;">Total Tarjeta/Transf:</span>
-          <span>C$${totalCard.toFixed(2)}</span>
-        </div>
-      </div>
-      <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
-      <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 10px;">
-        <span>TOTAL VENTAS:</span>
-        <span>C$${totalSales.toFixed(2)}</span>
-      </div>
-      <div style="border-top: 1px dashed #999; margin: 8px 0;"></div>
-      <div style="text-align: center; font-size: 11px; color: #777;">
-        <div>Fin de Turno</div>
-      </div>
-    `;
-
-    const printWindow = window.open("", "_blank", "width=420,height=600");
-    if (printWindow) {
-      printWindow.document.write(
-        "<html><head><title>Cierre de Caja</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:16px;width:300px;}</style></head><body>" +
-          printContent +
-          "<script>window.onload=function(){window.print();window.close();}</script></body></html>"
-      );
-      printWindow.document.close();
     }
   };
 
@@ -108,24 +69,35 @@ export const Dashboard = () => {
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold text-slate-800 m-0">Cierre de Caja</h3>
-          <p className="text-sm text-slate-500 mt-1 mb-0">Imprime el ticket de corte (Z) y transfiere las ventas al historial del Administrador.</p>
+          <p className="text-sm text-slate-500 mt-1 mb-0">Imprime el ticket de corte (Z) con desglose por categoría y auditoría de inventario.</p>
         </div>
-        <button
-          onClick={handleCloseShift}
-          disabled={activeTablesCount > 0}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-md ${
-            activeTablesCount > 0 
-              ? 'bg-slate-400 cursor-not-allowed opacity-70' 
-              : 'bg-red-600 hover:bg-red-700 hover:shadow-red-500/25 cursor-pointer'
-          }`}
-        >
-          {activeTablesCount > 0 ? (
-            <AlertTriangle className="w-5 h-5" />
-          ) : (
-            <CheckCircle className="w-5 h-5" />
-          )}
-          Cerrar Caja
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePrintZReceipt}
+            disabled={totalInvoicesCount === 0}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-white transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            <Printer className="w-4 h-4 text-yellow-400" />
+            Imprimir Corte Z
+          </button>
+
+          <button
+            onClick={handleCloseShift}
+            disabled={activeTablesCount > 0}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white transition-all shadow-md text-sm ${
+              activeTablesCount > 0 
+                ? 'bg-slate-400 cursor-not-allowed opacity-70' 
+                : 'bg-red-600 hover:bg-red-700 hover:shadow-red-500/25 cursor-pointer'
+            }`}
+          >
+            {activeTablesCount > 0 ? (
+              <AlertTriangle className="w-4 h-4" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            Cerrar Caja
+          </button>
+        </div>
       </div>
 
       {activeTablesCount > 0 && (
