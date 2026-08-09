@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { INITIAL_PRODUCTS, INITIAL_TABLES } from "../mock/initialData";
 
@@ -34,14 +34,16 @@ export const BarProvider = ({ children }) => {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  // Referencias para proteger el estado en tiempo real contra Race Conditions
+  const pendingSyncTablesRef = useRef(new Map());
+  const updateOrderDebounceTimersRef = useRef(new Map());
+
   const fetchData = async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
 
       // Fetch Global Configs
-      const { data: settingsData } = await supabase
-        .from("settings")
-        .select("*");
+      const { data: settingsData } = await supabase.from("settings").select("*");
       if (settingsData) {
         const rate = settingsData.find((s) => s.key === "exchange_rate");
         if (rate) setExchangeRate(rate.value);
@@ -63,9 +65,7 @@ export const BarProvider = ({ children }) => {
       }
 
       // Fetch Products
-      const { data: productsData } = await supabase
-        .from("products")
-        .select("*");
+      const { data: productsData } = await supabase.from("products").select("*");
       const { data: bundlesData } = await supabase
         .from("product_bundles")
         .select("*");
@@ -100,25 +100,21 @@ export const BarProvider = ({ children }) => {
       const { data: ordersData } = await supabase.from("orders").select("*");
 
       if (tablesData && productsData) {
-        // Assemble initial tables array with their orders
-        let newTables = INITIAL_TABLES.map((initTable) => {
-          const dbTable = tablesData.find(
-            (t) => String(t.id) === String(initTable.id),
-          );
-          if (!dbTable) return initTable;
-
-          const tableOrders =
-            ordersData?.filter(
-              (o) => String(o.table_id) === String(dbTable.id),
-            ) || [];
-
+        // Función auxiliar que resuelve los items de una mesa protegiendo contra race conditions
+        const resolveTableItems = (tableId, dbTable, tableOrders) => {
+          const sId = String(tableId);
+          const pending = pendingSyncTablesRef.current.get(sId);
+          if (pending && Date.now() - pending.timestamp < 3500) {
+            return {
+              status: pending.items.length > 0 ? "ocupada" : "libre",
+              customerName: pending.customerName || (dbTable?.customer_name || ""),
+              items: pending.items,
+              unprintedItems: pending.unprintedItems || [],
+            };
+          }
           return {
-            ...initTable,
-            id: String(initTable.id),
-            status: dbTable.status,
-            customerName: dbTable.customer_name || "",
-            assignedWaiterId: dbTable.assigned_waiter_id,
-            createdAt: dbTable.created_at,
+            status: dbTable?.status || "libre",
+            customerName: dbTable?.customer_name || "",
             items: tableOrders.map((o) => {
               const pData = productsData.find(
                 (p) => String(p.id) === String(o.product_id),
@@ -146,6 +142,30 @@ export const BarProvider = ({ children }) => {
                 };
               }),
           };
+        };
+
+        // Assemble initial tables array with their orders
+        let newTables = INITIAL_TABLES.map((initTable) => {
+          const dbTable = tablesData.find(
+            (t) => String(t.id) === String(initTable.id),
+          );
+          const tableOrders =
+            ordersData?.filter(
+              (o) => String(o.table_id) === String(initTable.id),
+            ) || [];
+
+          const resolved = resolveTableItems(initTable.id, dbTable, tableOrders);
+
+          return {
+            ...initTable,
+            id: String(initTable.id),
+            status: resolved.status,
+            customerName: resolved.customerName,
+            assignedWaiterId: dbTable?.assigned_waiter_id,
+            createdAt: dbTable?.created_at,
+            items: resolved.items,
+            unprintedItems: resolved.unprintedItems,
+          };
         });
 
         // Add dynamically created bar accounts
@@ -155,40 +175,17 @@ export const BarProvider = ({ children }) => {
             ordersData?.filter(
               (o) => String(o.table_id) === String(barAcc.id),
             ) || [];
+          const resolved = resolveTableItems(barAcc.id, barAcc, tableOrders);
           newTables.push({
             id: String(barAcc.id),
             name: barAcc.name,
-            status: barAcc.status,
-            customerName: barAcc.customer_name || "",
+            status: resolved.status,
+            customerName: resolved.customerName,
             assignedWaiterId: barAcc.assigned_waiter_id,
             createdAt: barAcc.created_at,
             isBar: true,
-            items: tableOrders.map((o) => {
-              const pData = productsData.find(
-                (p) => String(p.id) === String(o.product_id),
-              );
-              return {
-                product: {
-                  id: pData?.id,
-                  name: pData?.name,
-                  price: Number(pData?.price || 0),
-                  cost: Number(pData?.cost || 0),
-                  category: pData?.category_id,
-                },
-                quantity: o.quantity,
-              };
-            }),
-            unprintedItems: tableOrders
-              .filter((o) => !o.is_printed)
-              .map((o) => {
-                const pData = productsData.find(
-                  (p) => String(p.id) === String(o.product_id),
-                );
-                return {
-                  product: { id: pData?.id, name: pData?.name },
-                  quantity: o.quantity,
-                };
-              }),
+            items: resolved.items,
+            unprintedItems: resolved.unprintedItems,
           });
         }
 
@@ -201,40 +198,17 @@ export const BarProvider = ({ children }) => {
             ordersData?.filter(
               (o) => String(o.table_id) === String(extra.id),
             ) || [];
+          const resolved = resolveTableItems(extra.id, extra, tableOrders);
           newTables.push({
             id: String(extra.id),
             name: extra.name || `Mesa ${extra.id}`,
-            status: extra.status || "libre",
-            customerName: extra.customer_name || "",
+            status: resolved.status,
+            customerName: resolved.customerName,
             assignedWaiterId: extra.assigned_waiter_id,
             createdAt: extra.created_at,
             isBar: false,
-            items: tableOrders.map((o) => {
-              const pData = productsData.find(
-                (p) => String(p.id) === String(o.product_id),
-              );
-              return {
-                product: {
-                  id: pData?.id,
-                  name: pData?.name,
-                  price: Number(pData?.price || 0),
-                  cost: Number(pData?.cost || 0),
-                  category: pData?.category_id,
-                },
-                quantity: o.quantity,
-              };
-            }),
-            unprintedItems: tableOrders
-              .filter((o) => !o.is_printed)
-              .map((o) => {
-                const pData = productsData.find(
-                  (p) => String(p.id) === String(o.product_id),
-                );
-                return {
-                  product: { id: pData?.id, name: pData?.name },
-                  quantity: o.quantity,
-                };
-              }),
+            items: resolved.items,
+            unprintedItems: resolved.unprintedItems,
           });
         }
 
@@ -397,7 +371,15 @@ export const BarProvider = ({ children }) => {
       const isOccupied = items.length > 0;
       const sTableId = String(tableId);
 
-      // OPTIMISTIC UI UPDATE
+      // 1. Record in-flight pending state immediately to protect against background overwrites
+      pendingSyncTablesRef.current.set(sTableId, {
+        items,
+        unprintedItems: unprintedItems || [],
+        customerName,
+        timestamp: Date.now(),
+      });
+
+      // 2. OPTIMISTIC UI UPDATE
       setTables((prevTables) =>
         prevTables.map((t) => {
           if (String(t.id) === sTableId) {
@@ -414,49 +396,56 @@ export const BarProvider = ({ children }) => {
         }),
       );
 
-      const { error: e1 } = await supabase.from("tables").upsert(
-        {
-          id: sTableId,
-          name:
-            tables.find((t) => String(t.id) === sTableId)?.name ||
-            `Mesa ${sTableId}`,
-          status: isOccupied ? "ocupada" : "libre",
-          customer_name: customerName,
-          assigned_waiter_id: currentUser?.id,
-          created_at: isOccupied ? new Date().toISOString() : null,
-        },
-        { onConflict: "id" },
-      );
-      if (e1) {
-        console.error("Error upserting table:", e1);
+      // 3. Debounced clean write to Supabase (200ms)
+      if (updateOrderDebounceTimersRef.current.has(sTableId)) {
+        clearTimeout(updateOrderDebounceTimersRef.current.get(sTableId));
       }
 
-      const { error: e2 } = await supabase
-        .from("orders")
-        .delete()
-        .eq("table_id", sTableId);
-      if (e2) {
-        console.error("Error deleting old orders:", e2);
-      }
+      const timerId = setTimeout(async () => {
+        try {
+          const { error: e1 } = await supabase.from("tables").upsert(
+            {
+              id: sTableId,
+              name:
+                tables.find((t) => String(t.id) === sTableId)?.name ||
+                `Mesa ${sTableId}`,
+              status: isOccupied ? "ocupada" : "libre",
+              customer_name: customerName,
+              assigned_waiter_id: currentUser?.id,
+              created_at: isOccupied ? new Date().toISOString() : null,
+            },
+            { onConflict: "id" },
+          );
+          if (e1) console.error("Error upserting table:", e1);
 
-      if (isOccupied) {
-        const ordersToInsert = items.map((i) => ({
-          table_id: sTableId,
-          product_id: String(i.product.id),
-          quantity: i.quantity,
-          is_printed: unprintedItems
-            ? !unprintedItems.find(
-                (u) => String(u.product.id) === String(i.product.id),
-              )
-            : true,
-        }));
-        const { error: e3 } = await supabase
-          .from("orders")
-          .insert(ordersToInsert);
-        if (e3) {
-          console.error("Error inserting orders:", e3);
+          const { error: e2 } = await supabase
+            .from("orders")
+            .delete()
+            .eq("table_id", sTableId);
+          if (e2) console.error("Error deleting old orders:", e2);
+
+          if (isOccupied) {
+            const ordersToInsert = items.map((i) => ({
+              table_id: sTableId,
+              product_id: String(i.product.id),
+              quantity: i.quantity,
+              is_printed: unprintedItems
+                ? !unprintedItems.find(
+                    (u) => String(u.product.id) === String(i.product.id),
+                  )
+                : true,
+            }));
+            const { error: e3 } = await supabase
+              .from("orders")
+              .insert(ordersToInsert);
+            if (e3) console.error("Error inserting orders:", e3);
+          }
+        } catch (dbErr) {
+          console.error("Database sync error:", dbErr);
         }
-      }
+      }, 200);
+
+      updateOrderDebounceTimersRef.current.set(sTableId, timerId);
     } catch (err) {
       console.error("updateTableOrder crash:", err);
     }
