@@ -44,9 +44,20 @@ export const ActiveOrders = () => {
 
           <button
             onClick={async () => { 
-              const newId = await addNewTable();
-              if (newId) {
-                setOrderTableToEditId(newId);
+              // 1. Buscar la primera mesa base (Mesa 1 a 10) que esté libre
+              const firstFreeBaseTable = tables.find(
+                (t) => !t.isBar && parseInt(t.id, 10) <= 10 && t.status === "libre"
+              );
+
+              if (firstFreeBaseTable) {
+                // Si la Mesa 1 (o 2, 3...) está libre, la abre directamente en Caja
+                setOrderTableToEditId(firstFreeBaseTable.id);
+              } else {
+                // Si las 10 mesas fijas están todas ocupadas, crea la siguiente (Mesa 11, 12...)
+                const newId = await addNewTable();
+                if (newId) {
+                  setOrderTableToEditId(newId);
+                }
               }
             }}
             className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-md flex items-center gap-2 transition-all cursor-pointer shrink-0 text-sm"
