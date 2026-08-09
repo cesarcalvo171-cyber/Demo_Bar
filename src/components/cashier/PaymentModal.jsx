@@ -164,18 +164,43 @@ export const PaymentModal = ({ table, onClose }) => {
 
               {/* Resultado del Vuelto */}
               {receivedAmount !== '' && (
-                <div className={`p-5 rounded-xl border-2 flex items-center justify-between ${
+                <div className={`p-4 rounded-xl border-2 flex flex-col gap-2.5 ${
                   missingAmount > 0 
                     ? 'bg-red-50 border-red-200 text-red-700' 
                     : 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 }`}>
-                  <span className="text-sm font-bold uppercase tracking-wide">
-                    {missingAmount > 0 ? 'Falta por pagar:' : 'Vuelto / Cambio a entregar:'}
-                  </span>
-                  <span className="text-2xl font-black">
-                    {currency === 'NIO' ? 'C$' : 'U$'}
-                    {missingAmount > 0 ? missingAmount.toFixed(2) : changeAmount.toFixed(2)}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold uppercase tracking-wide">
+                      {missingAmount > 0 ? 'Falta por pagar:' : 'Vuelto / Cambio a entregar:'}
+                    </span>
+                    <span className="text-2xl font-black">
+                      {currency === 'NIO' ? 'C$' : 'U$'}
+                      {missingAmount > 0 ? missingAmount.toFixed(2) : changeAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Si el cliente paga en Dólares y hay vuelto, mostrar el vuelto en Córdobas abajo */}
+                  {currency === 'USD' && missingAmount === 0 && changeAmount > 0 && (
+                    <div className="flex items-center justify-between border-t border-emerald-200/80 pt-2.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                        Vuelto en Córdobas (T/C {exchangeRate || 36.62}):
+                      </span>
+                      <span className="text-xl font-black text-emerald-800">
+                        C${(changeAmount * (exchangeRate || 36.62)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {currency === 'NIO' && missingAmount === 0 && changeAmount > 0 && (
+                    <div className="flex items-center justify-between border-t border-emerald-200/80 pt-2 text-emerald-900">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
+                        Equivalente en Dólares:
+                      </span>
+                      <span className="text-sm font-bold text-emerald-700">
+                        U${(changeAmount / (exchangeRate || 36.62)).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
