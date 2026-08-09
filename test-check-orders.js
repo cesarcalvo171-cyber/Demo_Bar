@@ -5,11 +5,28 @@ dotenv.config();
 const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
 
 async function check() {
-  const { data: categories, error } = await supabase.from('categories').select('*');
-  console.log("Categories in Supabase:", categories);
-  console.log("Error if any:", error);
-  const { data: products } = await supabase.from('products').select('id, name, category_id');
-  const distinctCategories = [...new Set(products?.map(p => p.category_id))];
-  console.log("Distinct product category_ids:", distinctCategories);
+  const { data: invData } = await supabase.from("invoices").select("*");
+  const { data: invItemsData } = await supabase.from("invoice_items").select("*");
+  const { data: productsData } = await supabase.from("products").select("*");
+
+  let totalSales = 0;
+  let totalCost = 0;
+
+  (invData || []).forEach(inv => {
+    totalSales += Number(inv.total || 0);
+    const items = (invItemsData || []).filter(i => i.invoice_id === inv.id);
+    items.forEach(item => {
+      let cost = Number(item.cost_at_sale || 0);
+      if (!cost) {
+        const p = productsData.find(prod => prod.name.trim().toLowerCase() === (item.product_name || '').trim().toLowerCase());
+        cost = Number(p?.cost || 0);
+      }
+      totalCost += cost * Number(item.quantity || 1);
+    });
+  });
+
+  console.log("Total Ventas in DB:", totalSales);
+  console.log("Calculated Total COGS (Costos):", totalCost);
+  console.log("Calculated Gross Profit (Ganancia Bruta):", totalSales - totalCost);
 }
 check();

@@ -3,7 +3,7 @@ import { useBar } from '../../context/BarContext';
 import { TrendingUp, TrendingDown, DollarSign, Receipt, Briefcase, Activity } from 'lucide-react';
 
 export const ProfitLossReport = () => {
-  const { paidInvoices, cashRegisterHistory, expenses } = useBar();
+  const { paidInvoices, cashRegisterHistory, expenses, products } = useBar();
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
 
@@ -24,11 +24,22 @@ export const ProfitLossReport = () => {
   });
 
   // 1. Ingresos Brutos (Ventas Totales)
-  const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
 
   // 2. Costo de Mercadería Vendida (COGS)
   const totalCOGS = filteredInvoices.reduce((sum, inv) => {
-    const invoiceCost = inv.items.reduce((itemSum, item) => itemSum + ((item.product?.cost || 0) * item.quantity), 0);
+    const invoiceCost = (inv.items || []).reduce((itemSum, item) => {
+      let itemCost = Number(item.cost || item.product?.cost || 0);
+      if (!itemCost && item.name && products && products.length > 0) {
+        const prodMatch = products.find(
+          (p) => p.name.trim().toLowerCase() === item.name.trim().toLowerCase()
+        );
+        if (prodMatch && prodMatch.cost) {
+          itemCost = Number(prodMatch.cost);
+        }
+      }
+      return itemSum + itemCost * (Number(item.quantity) || 1);
+    }, 0);
     return sum + invoiceCost;
   }, 0);
 
