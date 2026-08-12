@@ -9,10 +9,13 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
   const printRef = useRef();
   const [hasPrinted, setHasPrinted] = useState(false);
 
-  const total = items.reduce(
+  const baseTotal = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0,
   );
+  const isTransfer = paymentDetails?.method === 'Transferencia';
+  const transferFee = isTransfer ? baseTotal * 0.10 : 0;
+  const total = baseTotal + transferFee;
   const now = new Date();
   const dateStr = now.toLocaleDateString("es-NI", {
     day: "2-digit",
@@ -200,6 +203,33 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             <div
               style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
+            {isTransfer && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "14px",
+                    marginBottom: "3px",
+                  }}
+                >
+                  <span>Subtotal:</span>
+                  <span>C${baseTotal.toFixed(2)}</span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "14px",
+                    marginBottom: "5px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <span>Recargo 10% Transferencia:</span>
+                  <span>+C${transferFee.toFixed(2)}</span>
+                </div>
+              </>
+            )}
             <div
               style={{
                 display: "flex",
