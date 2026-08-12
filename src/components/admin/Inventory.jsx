@@ -150,6 +150,7 @@ export const Inventory = () => {
           onClose={() => setSelectedProduct(null)}
           title={`Ajustar Stock: ${selectedProduct.name}`}
           maxWidth="max-w-sm"
+          height="h-auto"
         >
           <Formik
             initialValues={{ stockToAdd: '' }}

@@ -163,7 +163,8 @@ export const ExpensesManager = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           title="Registrar Nuevo Gasto"
-          maxWidth="max-w-xl"
+          maxWidth="max-w-lg"
+          height="h-auto max-h-[90vh]"
         >
           <Formik
             initialValues={{

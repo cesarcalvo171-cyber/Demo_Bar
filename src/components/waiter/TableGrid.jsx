@@ -131,6 +131,7 @@ export const TableGrid = () => {
           onClose={() => setSelectedTableId(null)}
           title={`Gestión de ${selectedTable.name}`}
           maxWidth="max-w-7xl"
+          height="h-[92vh]"
         >
           <OrderModal
             table={selectedTable}

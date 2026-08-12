@@ -101,6 +101,7 @@ export const ActiveOrders = () => {
           onClose={() => setOrderTableToEditId(null)}
           title={`Gestión de ${orderTableToEdit.name}`}
           maxWidth="max-w-7xl"
+          height="h-[92vh]"
         >
           <OrderModal
             table={orderTableToEdit}

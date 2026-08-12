@@ -47,8 +47,10 @@ const MainContent = () => {
             }
           />
         </Routes>
+         
       </main>
       <Footer/>
+     
      
     </Router>
     
