@@ -676,7 +676,7 @@ export const BarProvider = ({ children }) => {
       (sum, item) => sum + item.product.price * item.quantity,
       0,
     );
-    const total = paymentMethod === 'Transferencia' ? baseTotal * 1.10 : baseTotal;
+    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
     const invoiceId = `FAC-${Date.now()}`;
 
     // 1. Insert Invoice

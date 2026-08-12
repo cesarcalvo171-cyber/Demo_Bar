@@ -13,9 +13,9 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
     (sum, item) => sum + item.product.price * item.quantity,
     0,
   );
-  const isTransfer = paymentDetails?.method === 'Transferencia';
-  const transferFee = isTransfer ? baseTotal * 0.10 : 0;
-  const total = baseTotal + transferFee;
+  const isCard = paymentDetails?.method === 'Tarjeta';
+  const cardFee = isCard ? baseTotal * 0.10 : 0;
+  const total = baseTotal + cardFee;
   const now = new Date();
   const dateStr = now.toLocaleDateString("es-NI", {
     day: "2-digit",
@@ -203,7 +203,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             <div
               style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
-            {isTransfer && (
+            {isCard && (
               <>
                 <div
                   style={{
@@ -225,8 +225,8 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                     fontWeight: "bold",
                   }}
                 >
-                  <span>Recargo 10% Transferencia:</span>
-                  <span>+C${transferFee.toFixed(2)}</span>
+                  <span>Recargo 10% Tarjeta:</span>
+                  <span>+C${cardFee.toFixed(2)}</span>
                 </div>
               </>
             )}

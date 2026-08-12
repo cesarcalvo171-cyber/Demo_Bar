@@ -12,9 +12,9 @@ export const PaymentModal = ({ table, onClose }) => {
   const [snapshotData, setSnapshotData] = useState(null);
 
   const baseTotalCordobas = table.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const isTransfer = paymentMethod === 'Transferencia';
-  const transferFeeCordobas = isTransfer ? baseTotalCordobas * 0.10 : 0;
-  const totalCordobas = baseTotalCordobas + transferFeeCordobas;
+  const isCard = paymentMethod === 'Tarjeta';
+  const cardFeeCordobas = isCard ? baseTotalCordobas * 0.10 : 0;
+  const totalCordobas = baseTotalCordobas + cardFeeCordobas;
   const totalDolares = totalCordobas / (exchangeRate || 36.62);
 
   // Calculadora
@@ -87,18 +87,18 @@ export const PaymentModal = ({ table, onClose }) => {
           {/* Totales Grandes */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-6 text-center mb-4 sm:mb-6">
             <p className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">
-              {isTransfer ? 'Total a Pagar (Con 10% Recargo Transferencia)' : 'Total a Pagar'}
+              {isCard ? 'Total a Pagar (Con 10% Recargo Tarjeta)' : 'Total a Pagar'}
             </p>
             <div className="flex flex-row items-center justify-center gap-3 sm:gap-6">
               <span className="text-2xl sm:text-4xl font-black text-slate-900">C${totalCordobas.toFixed(2)}</span>
               <span className="text-slate-300 text-xl sm:text-2xl font-light">|</span>
               <span className="text-xl sm:text-2xl font-bold text-slate-500">U${totalDolares.toFixed(2)}</span>
             </div>
-            {isTransfer && (
+            {isCard && (
               <div className="mt-3 pt-3 border-t border-slate-200/80 text-xs flex justify-around items-center text-slate-600 font-semibold">
                 <span>Pago Inicial: <strong className="text-slate-800">C${baseTotalCordobas.toFixed(2)}</strong></span>
                 <span className="text-emerald-700 font-bold bg-emerald-100/80 px-2.5 py-1 rounded-md border border-emerald-300">
-                  +10% Transferencia: C${transferFeeCordobas.toFixed(2)}
+                  +10% Tarjeta: C${cardFeeCordobas.toFixed(2)}
                 </span>
               </div>
             )}
