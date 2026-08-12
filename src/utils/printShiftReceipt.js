@@ -195,23 +195,23 @@ export const printShiftCloseReceipt = ({
 
   // 2. Generar el contenido HTML para la impresora térmica
   const printContent = `
-    <div style="text-align: center; margin-bottom: 8px;">
-      <div style="font-size: 16px; font-weight: bold; letter-spacing: 1px;">MONCHOS BAR</div>
-      <div style="font-size: 11px; font-weight: bold; margin-top: 2px; text-transform: uppercase;">
+    <div style="text-align: center; margin-bottom: 10px;">
+      <div style="font-size: 28px; font-weight: bold; letter-spacing: 1px; color: #000;">MONCHOS BAR</div>
+      <div style="font-size: 18px; font-weight: bold; margin-top: 4px; text-transform: uppercase; color: #000;">
         CIERRE DE CAJA (CORTE Z)
       </div>
       <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-      <div style="font-size: 11px; text-align: left; line-height: 1.4;">
+      <div style="font-size: 16px; text-align: left; line-height: 1.5; color: #000;">
         <div><strong>Fecha:</strong> ${dateStr}</div>
         <div><strong>Hora:</strong> ${timeStr}</div>
         <div><strong>Cajero:</strong> ${cashierName}</div>
-        ${shiftId ? `<div><strong>Turno ID:</strong> <span style="font-size: 9px;">${shiftId.slice(-8)}</span></div>` : ""}
+        ${shiftId ? `<div><strong>Turno ID:</strong> <span style="font-size: 14px;">${shiftId.slice(-8)}</span></div>` : ""}
       </div>
     </div>
 
     <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-    <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">RESUMEN DE VENTAS</div>
-    <div style="font-size: 11px; line-height: 1.5;">
+    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">RESUMEN DE VENTAS</div>
+    <div style="font-size: 16px; line-height: 1.6; color: #000;">
       <div style="display: flex; justify-content: space-between;">
         <span>Facturas Emitidas:</span>
         <strong>${totalInvoicesCount}</strong>
@@ -224,23 +224,23 @@ export const printShiftCloseReceipt = ({
         <span>Total Tarjeta / Transf:</span>
         <strong>C$${totalCard.toFixed(2)}</strong>
       </div>
-      <div style="border-top: 1px solid #000; margin: 4px 0;"></div>
-      <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold;">
+      <div style="border-top: 1px solid #000; margin: 6px 0;"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #000;">
         <span>TOTAL VENTAS:</span>
         <span>C$${totalSales.toFixed(2)}</span>
       </div>
     </div>
 
-    <div style="border-top: 1px dashed #000; margin: 10px 0 6px;"></div>
-    <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">TOTALES POR CATEGORÍA</div>
-    <div style="font-size: 11px; line-height: 1.4;">
+    <div style="border-top: 1px dashed #000; margin: 12px 0 8px;"></div>
+    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">TOTALES POR CATEGORÍA</div>
+    <div style="font-size: 16px; line-height: 1.5; color: #000;">
       ${
         categoriesList.length === 0
-          ? `<div style="font-style: italic; color: #666;">Sin ventas registradas</div>`
+          ? `<div style="font-style: italic; color: #000;">Sin ventas registradas</div>`
           : categoriesList
               .map(
                 (cat) => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
           <span>• ${cat.name} (${cat.totalUnits} unid):</span>
           <strong>C$${cat.totalAmount.toFixed(2)}</strong>
         </div>`
@@ -249,30 +249,30 @@ export const printShiftCloseReceipt = ({
       }
     </div>
 
-    <div style="border-top: 1px dashed #000; margin: 10px 0 6px;"></div>
-    <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">
+    <div style="border-top: 1px dashed #000; margin: 12px 0 8px;"></div>
+    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">
       AUDITORÍA DE INVENTARIO
-      <div style="font-size: 9px; font-weight: normal; color: #444;">(Vendido en Turno vs Stock Restante)</div>
+      <div style="font-size: 14px; font-weight: normal; color: #000;">(Vendido en Turno vs Stock Restante)</div>
     </div>
-    <table style="width: 100%; font-size: 10px; border-collapse: collapse; text-align: left;">
+    <table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: left; color: #000;">
       <thead>
         <tr style="border-bottom: 1px solid #000;">
-          <th style="padding: 2px 0;">PRODUCTO</th>
-          <th style="padding: 2px 0; text-align: center; width: 40px;">VEND.</th>
-          <th style="padding: 2px 0; text-align: right; width: 60px;">STOCK</th>
+          <th style="padding: 4px 0;">PRODUCTO</th>
+          <th style="padding: 4px 0; text-align: center; width: 50px;">VEND.</th>
+          <th style="padding: 4px 0; text-align: right; width: 70px;">STOCK</th>
         </tr>
       </thead>
       <tbody>
         ${
           productsList.length === 0
-            ? `<tr><td colspan="3" style="text-align: center; padding: 4px;">Sin productos vendidos</td></tr>`
+            ? `<tr><td colspan="3" style="text-align: center; padding: 6px;">Sin productos vendidos</td></tr>`
             : productsList
                 .map(
                   (p) => `
-          <tr style="border-bottom: 1px dotted #ccc;">
-            <td style="padding: 3px 0; font-weight: 500;">${p.name}</td>
-            <td style="padding: 3px 0; text-align: center; font-weight: bold;">${p.quantitySold}</td>
-            <td style="padding: 3px 0; text-align: right; font-weight: bold;">${p.currentStock}</td>
+          <tr style="border-bottom: 1px dotted #000;">
+            <td style="padding: 4px 0; font-weight: 500;">${p.name}</td>
+            <td style="padding: 4px 0; text-align: center; font-weight: bold;">${p.quantitySold}</td>
+            <td style="padding: 4px 0; text-align: right; font-weight: bold;">${p.currentStock}</td>
           </tr>`
                 )
                 .join("")
@@ -280,10 +280,10 @@ export const printShiftCloseReceipt = ({
       </tbody>
     </table>
 
-    <div style="border-top: 1px dashed #000; margin: 14px 0 10px;"></div>
-    <div style="text-align: center; font-size: 10px; line-height: 1.5; color: #222;">
+    <div style="border-top: 1px dashed #000; margin: 16px 0 12px;"></div>
+    <div style="text-align: center; font-size: 16px; line-height: 1.5; color: #000;">
       <div style="font-weight: bold;">*** FIN DE CORTE Z ***</div>
-      <div style="margin-top: 22px; border-top: 1px solid #444; width: 70%; margin-left: auto; margin-right: auto; padding-top: 2px;">
+      <div style="margin-top: 30px; border-top: 1px solid #000; width: 75%; margin-left: auto; margin-right: auto; padding-top: 4px; font-weight: bold;">
         Firma Responsable
       </div>
     </div>
@@ -300,11 +300,11 @@ export const printShiftCloseReceipt = ({
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: 'Courier New', monospace;
-              font-size: 11px;
-              color: #000;
-              background: #fff;
-              padding: 14px;
-              width: 300px;
+              font-size: 16px;
+              color: #000000;
+              background: #ffffff;
+              padding: 16px;
+              width: 320px;
             }
           </style>
         </head>
