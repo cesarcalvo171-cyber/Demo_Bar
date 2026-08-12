@@ -12,7 +12,7 @@ export const AdminDashboard = () => {
   const totalHistoricalSales = allInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
   const totalCashSales = allInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
   const totalCardSales = allInvoices.filter(i => i.paymentMethod !== 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
-
+//cambio de menos stock de productos categria
   const getLowStockThreshold = (category) => {
     switch (category?.toLowerCase()) {
       case 'cervezas': return 45;

@@ -700,7 +700,7 @@ export const BarProvider = ({ children }) => {
     }));
     await supabase.from("invoice_items").insert(itemsToInsert);
 
-    // 3. Subtract Stock (incluye soporte para Cubetazos / Promociones Combo)
+    // 3. Subtract Stock (incluye soporte completo para Promociones y Bundles)
     for (const item of table.items) {
       if (item.product.category !== "comida") {
         const prod = products.find(
@@ -709,10 +709,10 @@ export const BarProvider = ({ children }) => {
           (p) => p.name?.trim().toLowerCase() === item.product.name?.trim().toLowerCase()
         );
 
-        // Si tiene bundleItems configurados (ej: Cubetazo con 6 cervezas)
+        // Si tiene bundleItems configurados (ej: Cubetazo con 6 cervezas o Caja con 20 cigarros)
         if (prod && prod.bundleItems && Array.isArray(prod.bundleItems) && prod.bundleItems.length > 0) {
           for (const bundle of prod.bundleItems) {
-            const baseProd = products.find((p) => Number(p.id) === Number(bundle.productId));
+            const baseProd = products.find((p) => String(p.id) === String(bundle.productId));
             if (baseProd && baseProd.stock !== null) {
               const qtyToSubtract = Number(bundle.quantity || 1) * Number(item.quantity || 1);
               await supabase
@@ -723,7 +723,7 @@ export const BarProvider = ({ children }) => {
           }
         } else if (prod && (prod.name?.toLowerCase().includes("cubetazo toña") || prod.name?.toLowerCase().includes("cubetazo tona"))) {
           // Fallback explícito: Cubetazo Toña descuenta 6 Toñas 12oz
-          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12") || p.id === 1);
+          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12"));
           if (tonaProd && tonaProd.stock !== null) {
             const qtyToSubtract = 6 * Number(item.quantity || 1);
             await supabase
@@ -733,13 +733,63 @@ export const BarProvider = ({ children }) => {
           }
         } else if (prod && prod.name?.toLowerCase().includes("cubetazo clasica")) {
           // Fallback explícito: Cubetazo Clásica descuenta 6 Clásicas 12oz
-          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12") || p.id === 4);
+          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12"));
           if (clasicaProd && clasicaProd.stock !== null) {
             const qtyToSubtract = 6 * Number(item.quantity || 1);
             await supabase
               .from("products")
               .update({ stock: Math.max(0, clasicaProd.stock - qtyToSubtract) })
               .eq("id", clasicaProd.id);
+          }
+        } else if (prod && (prod.name?.toLowerCase().includes("moder sabor caja") || prod.name?.toLowerCase().includes("modern sabor caja"))) {
+          // Fallback explícito: Moder Sabor Caja descuenta 20 unidades de Moder de Sabor
+          const moderSaborProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("modern de sabor"));
+          if (moderSaborProd && moderSaborProd.stock !== null) {
+            const qtyToSubtract = 20 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, moderSaborProd.stock - qtyToSubtract) })
+              .eq("id", moderSaborProd.id);
+          }
+        } else if (prod && prod.name?.toLowerCase() === "moder caja") {
+          // Fallback explícito: Moder Caja descuenta 20 unidades
+          const moderProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("cigarro modern"));
+          if (moderProd && moderProd.stock !== null) {
+            const qtyToSubtract = 20 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, moderProd.stock - qtyToSubtract) })
+              .eq("id", moderProd.id);
+          }
+        } else if (prod && prod.name?.toLowerCase().includes("moder medio")) {
+          // Fallback explícito: Moder Medio descuenta 10 unidades
+          const moderProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("cigarro modern"));
+          if (moderProd && moderProd.stock !== null) {
+            const qtyToSubtract = 10 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, moderProd.stock - qtyToSubtract) })
+              .eq("id", moderProd.id);
+          }
+        } else if (prod && prod.name?.toLowerCase().includes("cigarro caja")) {
+          // Fallback explícito: Cigarro Caja descuenta 20 cigarros unidad
+          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
+          if (cigarroProd && cigarroProd.stock !== null) {
+            const qtyToSubtract = 20 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, cigarroProd.stock - qtyToSubtract) })
+              .eq("id", cigarroProd.id);
+          }
+        } else if (prod && prod.name?.toLowerCase().includes("cigarro media caja")) {
+          // Fallback explícito: Cigarro Media Caja descuenta 10 cigarros unidad
+          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
+          if (cigarroProd && cigarroProd.stock !== null) {
+            const qtyToSubtract = 10 * Number(item.quantity || 1);
+            await supabase
+              .from("products")
+              .update({ stock: Math.max(0, cigarroProd.stock - qtyToSubtract) })
+              .eq("id", cigarroProd.id);
           }
         } else if (prod && prod.stock !== null) {
           // Producto individual estándar con stock numérico
@@ -838,15 +888,30 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
-    const { error } = await supabase.from("products").insert({
-      name: newProd.name,
-      category_id: newProd.category,
-      price: newProd.price,
-      cost: newProd.cost,
-      stock: newProd.stock,
-      icon_path: imageUrl,
-    });
-    if (error) console.error("Error inserting product:", error);
+    const { data: insertedProduct, error } = await supabase
+      .from("products")
+      .insert({
+        name: newProd.name,
+        category_id: newProd.category,
+        price: newProd.price,
+        cost: newProd.cost,
+        stock: newProd.stock,
+        icon_path: imageUrl,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error inserting product:", error);
+    } else if (insertedProduct && newProd.bundleItems && newProd.bundleItems.length > 0) {
+      for (const bundle of newProd.bundleItems) {
+        await supabase.from("product_bundles").insert({
+          promotion_id: insertedProduct.id,
+          base_product_id: bundle.productId,
+          quantity_to_deduct: bundle.quantity,
+        });
+      }
+    }
 
     fetchData();
   };
@@ -868,7 +933,22 @@ export const BarProvider = ({ children }) => {
         icon_path: imageUrl,
       })
       .eq("id", updatedProd.id);
-    if (error) console.error("Error updating product:", error);
+
+    if (error) {
+      console.error("Error updating product:", error);
+    } else {
+      // Sincronizar product_bundles si es promocion
+      await supabase.from("product_bundles").delete().eq("promotion_id", updatedProd.id);
+      if (updatedProd.bundleItems && updatedProd.bundleItems.length > 0) {
+        for (const bundle of updatedProd.bundleItems) {
+          await supabase.from("product_bundles").insert({
+            promotion_id: updatedProd.id,
+            base_product_id: bundle.productId,
+            quantity_to_deduct: bundle.quantity,
+          });
+        }
+      }
+    }
 
     fetchData();
   };

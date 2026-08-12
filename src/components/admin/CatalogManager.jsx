@@ -79,7 +79,7 @@ export const CatalogManager = () => {
 
               if (values.category === 'promociones') {
                 formattedValues.bundleItems = [{
-                  productId: parseInt(values.bundleProductId, 10),
+                  productId: String(values.bundleProductId),
                   quantity: parseInt(values.bundleQuantity, 10)
                 }];
               } else {
