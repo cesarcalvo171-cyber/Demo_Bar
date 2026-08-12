@@ -97,20 +97,20 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
        
               
               <div
-                style={{ fontSize: "24px", color: "#000000", marginTop: "2px" }}
+                style={{ fontSize: "16px", color: "#000000", marginTop: "2px" }}
               >
                 Sistema de Gestión de Bar
               </div>
               <div
                 style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
               ></div>
-              <div style={{ fontSize: "24px" }}>Fecha: {dateStr}</div>
-              <div style={{ fontSize: "24px" }}>Hora: {timeStr}</div>
+              <div style={{ fontSize: "16px" }}>Fecha: {dateStr}</div>
+              <div style={{ fontSize: "16px" }}>Hora: {timeStr}</div>
             </div>
             <div
               style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
-            <div style={{ marginBottom: "8px", fontSize: "24px" }}>
+            <div style={{ marginBottom: "8px", fontSize: "16px" }}>
               <div
                 style={{
                   display: "flex",
@@ -143,7 +143,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontWeight: "bold" }}>{isFinal ? "Factura N°:" : "Ref.:"}</span>
-                <span style={{ fontSize: "24px" }}>{invoiceNum}</span>
+                <span style={{ fontSize: "16px" }}>{invoiceNum}</span>
               </div>
             </div>
             <div
@@ -153,7 +153,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                fontSize: "24px",
+                fontSize: "16px",
                 color: "#000000",
                 fontWeight: "bold",
                 marginBottom: "5px",
@@ -174,12 +174,12 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                   justifyContent: "space-between",
                   marginBottom: "5px",
                   alignItems: "flex-start",
-                  fontSize: "24px",
+                  fontSize: "16px",
                 }}
               >
                 <div style={{ flex: 1 }}>
                   <div>{item.product.name}</div>
-                  <div style={{ fontSize: "18px", color: "#000000" }}>
+                  <div style={{ fontSize: "16px", color: "#000000" }}>
                     C${item.product.price.toFixed(2)} c/u
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: "bold",
-                fontSize: "24px",
+                fontSize: "16px",
                 marginBottom: "10px",
               }}
             >
@@ -218,7 +218,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: "bold",
-                fontSize: "24px",
+                fontSize: "16px",
                 marginBottom: "10px",
                 color: "#000000",
               }}
@@ -230,23 +230,23 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             {isFinal && paymentDetails && (
               <>
                 <div style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}></div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "24px", marginBottom: "3px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                   <span style={{ fontWeight: "bold" }}>Método Pago:</span>
                   <span>{paymentDetails.method}</span>
                 </div>
                 {paymentDetails.method === 'Efectivo' ? (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "24px", marginBottom: "3px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                       <span style={{ fontWeight: "bold" }}>Recibido ({paymentDetails.currency}):</span>
                       <span>{paymentDetails.currency === 'NIO' ? 'C$' : 'US$'}{paymentDetails.received.toFixed(2)}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "24px", marginBottom: "3px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                       <span style={{ fontWeight: "bold" }}>Vuelto ({paymentDetails.currency}):</span>
                       <span>{paymentDetails.currency === 'NIO' ? 'C$' : 'US$'}{paymentDetails.change.toFixed(2)}</span>
                     </div>
                   </>
                 ) : (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "24px", marginBottom: "3px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                     <span style={{ fontWeight: "bold" }}>Ref/Voucher:</span>
                     <span>{paymentDetails.reference}</span>
                   </div>
@@ -258,7 +258,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
             <div
-              style={{ textAlign: "center", fontSize: "18px", color: "#777" }}
+              style={{ textAlign: "center", fontSize: "12px", color: "#777" }}
             >
               <div>¡Gracias por su {isFinal ? "compra" : "visita"}!</div>
               <div style={{ marginTop: "3px" }}>
