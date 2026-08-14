@@ -1,10 +1,10 @@
 import React from 'react';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { FaCashRegister } from "react-icons/fa";
 import { useBar } from '../../context/BarContext';
 
 export const CashierHeader = () => {
-  const { currentUser, logout } = useBar();
+  const { currentUser, logout, isOnline, pendingSyncCount, syncOfflineQueue } = useBar();
 
   return (
     <header className="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-20 font-sans">
@@ -21,8 +21,30 @@ export const CashierHeader = () => {
           </div>
         </div>
 
-        {/* Usuario Activo y Cerrar Sesión */}
+        {/* Estado de Conexión, Usuario Activo y Cerrar Sesión */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Badge de Conexión Offline / Online */}
+          {!isOnline ? (
+            <div className="flex items-center gap-1.5 bg-red-950/80 border border-red-500/50 text-red-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
+              <WifiOff className="w-3.5 h-3.5 text-red-400" />
+              <span>Offline {pendingSyncCount > 0 && `(${pendingSyncCount})`}</span>
+            </div>
+          ) : pendingSyncCount > 0 ? (
+            <button
+              onClick={syncOfflineQueue}
+              className="flex items-center gap-1.5 bg-amber-950/80 border border-amber-500/50 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-amber-900 cursor-pointer transition-colors"
+              title="Click para sincronizar ahora"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              <span>Sincronizando ({pendingSyncCount})</span>
+            </button>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>En Línea</span>
+            </div>
+          )}
+
           {currentUser && (
             <div className="hidden md:flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
               <User className="w-3.5 h-3.5 text-yellow-500" />
