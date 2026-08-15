@@ -95,6 +95,8 @@ export const BarProvider = ({ children }) => {
         .select("*");
       let mappedProducts = [];
       let newTables = [];
+      let currentShiftInvoices = [];
+      let calculatedHistory = [];
       if (productsData) {
         mappedProducts = productsData.map((p) => {
           const bundleItems = bundlesData
@@ -329,7 +331,7 @@ export const BarProvider = ({ children }) => {
         });
 
         // BLINDAJE DE CORTE Z: Incluye facturas del turno activo + cualquier factura huérfana/no cerrada
-        const currentShiftInvoices = allMappedInvoices.filter((i) => {
+        currentShiftInvoices = allMappedInvoices.filter((i) => {
           if (activeShift && i.shiftId === activeShift.id) return true;
           // Si no tiene shiftId o su shiftId no está entre los turnos formalmente cerrados, pertenece al turno actual
           if (!i.shiftId || !closedShiftIds.has(i.shiftId)) return true;
@@ -339,9 +341,8 @@ export const BarProvider = ({ children }) => {
         setPaidInvoices(currentShiftInvoices);
 
         // History logic
-        setCashRegisterHistory(
-          closedShifts.map((cs) => {
-            const cashier = (usersData || []).find(
+        calculatedHistory = closedShifts.map((cs) => {
+          const cashier = (usersData || []).find(
               (u) => u.id === cs.closed_by || u.id === cs.opened_by
             );
             return {
@@ -362,8 +363,8 @@ export const BarProvider = ({ children }) => {
                 .reduce((s, i) => s + i.total, 0),
               invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
             };
-          }),
-        );
+          });
+        setCashRegisterHistory(calculatedHistory);
       }
 
       // Fetch expenses
@@ -391,6 +392,8 @@ export const BarProvider = ({ children }) => {
         expenses: expData,
         exchangeRate,
         shiftId: currentShiftId,
+        paidInvoices: currentShiftInvoices,
+        cashRegisterHistory: calculatedHistory,
       });
 
     } catch (err) {
@@ -404,6 +407,8 @@ export const BarProvider = ({ children }) => {
         if (snapshot.users) setUsers(snapshot.users);
         if (snapshot.expenses) setExpenses(snapshot.expenses);
         if (snapshot.exchangeRate) setExchangeRate(snapshot.exchangeRate);
+        if (snapshot.paidInvoices) setPaidInvoices(snapshot.paidInvoices);
+        if (snapshot.cashRegisterHistory) setCashRegisterHistory(snapshot.cashRegisterHistory);
       }
     } finally {
       setIsLoading(false);
