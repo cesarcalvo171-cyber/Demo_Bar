@@ -94,6 +94,7 @@ export const BarProvider = ({ children }) => {
         .from("product_bundles")
         .select("*");
       let mappedProducts = [];
+      let newTables = [];
       if (productsData) {
         mappedProducts = productsData.map((p) => {
           const bundleItems = bundlesData
@@ -120,8 +121,11 @@ export const BarProvider = ({ children }) => {
       }
 
       // Fetch Tables & Orders
-      const { data: tablesData } = await supabase.from("tables").select("*");
-      const { data: ordersData } = await supabase.from("orders").select("*");
+      const { data: tablesData, error: tablesError } = await supabase.from("tables").select("*");
+      const { data: ordersData, error: ordersError } = await supabase.from("orders").select("*");
+
+      if (tablesError) throw new Error("Fallo al obtener mesas: " + tablesError.message);
+      if (ordersError) throw new Error("Fallo al obtener órdenes: " + ordersError.message);
 
       if (tablesData && productsData) {
         // Función auxiliar que resuelve los items de una mesa protegiendo contra race conditions
@@ -169,7 +173,7 @@ export const BarProvider = ({ children }) => {
         };
 
         // Assemble initial tables array with their orders
-        let newTables = INITIAL_TABLES.map((initTable) => {
+        newTables = INITIAL_TABLES.map((initTable) => {
           const dbTable = tablesData.find(
             (t) => String(t.id) === String(initTable.id),
           );
