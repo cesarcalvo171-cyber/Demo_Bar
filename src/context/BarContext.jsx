@@ -670,12 +670,20 @@ export const BarProvider = ({ children }) => {
         created_at: new Date().toISOString(),
       });
       if (error) {
-        console.error("Error creating bar account:", error);
-        window.alert("Error creando cuenta en barra: " + error.message);
+        if (!navigator.onLine || error.message?.includes("Failed to fetch")) {
+          console.warn("📵 Creación de cuenta barra en modo offline. Se sincronizará al agregar productos.");
+        } else {
+          console.error("Error creating bar account:", error);
+          window.alert("Error creando cuenta en barra: " + error.message);
+        }
       }
       return newBarId;
     } catch (err) {
-      window.alert("Crash al crear cuenta en barra: " + err.message);
+      if (!navigator.onLine || err.message?.includes("Failed to fetch")) {
+        console.warn("📵 Crash offline ignorado al crear barra.");
+      } else {
+        window.alert("Crash al crear cuenta en barra: " + err.message);
+      }
     }
   };
   // Función para crear una nueva mesa consecutiva (Mesa 11, Mesa 12, etc.)
