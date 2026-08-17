@@ -16,9 +16,15 @@ const RootRedirect = () => {
 };
 
 const MainContent = () => {
+  const { isOnline, pendingSyncCount } = useBar();
   return (
     <Router>
-      <main className="min-h-screen bg-slate-100">
+      <main className="min-h-screen bg-slate-100 relative">
+        {!isOnline && (
+          <div className="fixed top-0 left-0 w-full bg-red-600 text-white p-3 text-center z-50 shadow-md font-medium">
+            ⚠️ ¡Sin conexión a Internet! Tus cambios se están guardando localmente (En cola: {pendingSyncCount}). Tienes protección visual por 5 minutos.
+          </div>
+        )}
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />

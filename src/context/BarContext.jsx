@@ -134,7 +134,7 @@ export const BarProvider = ({ children }) => {
         const resolveTableItems = (tableId, dbTable, tableOrders) => {
           const sId = String(tableId);
           const pending = pendingSyncTablesRef.current.get(sId);
-          if (pending && Date.now() - pending.timestamp < 3500) {
+          if (pending && Date.now() - pending.timestamp < 300000) {
             return {
               status: pending.items.length > 0 ? "ocupada" : "libre",
               customerName: pending.customerName || (dbTable?.customer_name || ""),
@@ -530,6 +530,10 @@ export const BarProvider = ({ children }) => {
 
       const timerId = setTimeout(async () => {
         try {
+          if (!navigator.onLine) {
+            throw new Error("Sin conexión a internet (detectado localmente)");
+          }
+
           const { error: e1 } = await supabase.from("tables").upsert(
             {
               id: sTableId,
@@ -543,13 +547,13 @@ export const BarProvider = ({ children }) => {
             },
             { onConflict: "id" },
           );
-          if (e1) console.error("Error upserting table:", e1);
+          if (e1) throw e1;
 
           const { error: e2 } = await supabase
             .from("orders")
             .delete()
             .eq("table_id", sTableId);
-          if (e2) console.error("Error deleting old orders:", e2);
+          if (e2) throw e2;
 
           if (isOccupied) {
             const ordersToInsert = items.map((i) => ({
@@ -565,10 +569,23 @@ export const BarProvider = ({ children }) => {
             const { error: e3 } = await supabase
               .from("orders")
               .insert(ordersToInsert);
-            if (e3) console.error("Error inserting orders:", e3);
+            if (e3) throw e3;
           }
         } catch (dbErr) {
-          console.error("Database sync error:", dbErr);
+          console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
+          
+          // Encolar acción para sincronizarla cuando vuelva el internet
+          const isBar = tables.find((t) => String(t.id) === sTableId)?.isBar || false;
+          enqueueOfflineAction("UPDATE_ORDER", {
+            tableId: sTableId,
+            items: items,
+            isBar: isBar,
+            customerName: customerName,
+            waiterId: currentUser?.id,
+          });
+          
+          // Incrementar contador visual para el cajero
+          setPendingSyncCount(getOfflineQueue().length);
         }
       }, 200);
 
