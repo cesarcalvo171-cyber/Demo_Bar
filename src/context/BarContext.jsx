@@ -136,7 +136,7 @@ export const BarProvider = ({ children }) => {
           const pending = pendingSyncTablesRef.current.get(sId);
           if (pending && Date.now() - pending.timestamp < 300000) {
             return {
-              status: pending.items.length > 0 ? "ocupada" : "libre",
+              status: pending.status || (pending.items.length > 0 ? "ocupada" : "libre"),
               customerName: pending.customerName || (dbTable?.customer_name || ""),
               items: pending.items,
               unprintedItems: pending.unprintedItems || [],
@@ -503,6 +503,7 @@ export const BarProvider = ({ children }) => {
         items,
         unprintedItems: unprintedItems || [],
         customerName,
+        status: isOccupied ? "ocupada" : "libre",
         timestamp: Date.now(),
       });
 
@@ -598,6 +599,16 @@ export const BarProvider = ({ children }) => {
   const clearUnprintedItems = async (tableId) => {
     try {
       const sTableId = String(tableId);
+      
+      const currentShield = pendingSyncTablesRef.current.get(sTableId);
+      if (currentShield) {
+        pendingSyncTablesRef.current.set(sTableId, {
+          ...currentShield,
+          unprintedItems: [],
+          timestamp: Date.now(),
+        });
+      }
+
       // OPTIMISTIC UI UPDATE
       setTables((prevTables) =>
         prevTables.map((t) => {
@@ -619,6 +630,14 @@ export const BarProvider = ({ children }) => {
   const addBarAccount = async (customerName) => {
     try {
       const newBarId = `barra_${Date.now()}`;
+
+      pendingSyncTablesRef.current.set(newBarId, {
+        items: [],
+        unprintedItems: [],
+        customerName,
+        status: "ocupada",
+        timestamp: Date.now(),
+      });
 
       // OPTIMISTIC UI UPDATE
       setTables((prev) => [
@@ -721,6 +740,17 @@ export const BarProvider = ({ children }) => {
 
   const sendOrderToCashier = async (tableId, customerName) => {
     const sTableId = String(tableId);
+
+    const currentShield = pendingSyncTablesRef.current.get(sTableId);
+    if (currentShield) {
+      pendingSyncTablesRef.current.set(sTableId, {
+        ...currentShield,
+        status: "pendiente_pago",
+        customerName,
+        timestamp: Date.now(),
+      });
+    }
+
     // OPTIMISTIC UI
     setTables((prev) =>
       prev.map((t) =>
@@ -741,6 +771,10 @@ export const BarProvider = ({ children }) => {
 
   const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
     const sTableId = String(tableId);
+    
+    // IMPORTANTE: Limpiar el escudo protector para que la mesa no vuelva a aparecer como "ocupada"
+    pendingSyncTablesRef.current.delete(sTableId);
+
     const table = tables.find((t) => String(t.id) === sTableId);
     if (!table || table.items.length === 0) return;
 
