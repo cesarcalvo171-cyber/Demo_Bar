@@ -201,6 +201,11 @@ export const BarProvider = ({ children }) => {
         // Add dynamically created bar accounts
         const barAccounts = tablesData.filter((t) => t.is_bar_account);
         for (const barAcc of barAccounts) {
+          const pending = pendingSyncTablesRef.current.get(String(barAcc.id));
+          if (pending && pending.isDeleted && Date.now() - pending.timestamp < 300000) {
+            continue; // Ignorar cuentas barra que fueron cobradas localmente
+          }
+
           const tableOrders =
             ordersData?.filter(
               (o) => String(o.table_id) === String(barAcc.id),
@@ -731,6 +736,13 @@ export const BarProvider = ({ children }) => {
         return;
       }
       setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+
+      // Proteger que no vuelva a aparecer en el próximo fetchData
+      pendingSyncTablesRef.current.set(sTableId, {
+        isDeleted: true,
+        timestamp: Date.now(),
+      });
+
       await fetchData(true);
     } catch (err) {
       console.error("Error al eliminar mesa extra:", err);
@@ -774,16 +786,17 @@ export const BarProvider = ({ children }) => {
     
     // IMPORTANTE: Actualizar el escudo a estado "libre" y vacío, en lugar de borrarlo.
     // Así, cuando vuelva el internet, la mesa no parpadeará como "ocupada" mientras la cola se sincroniza.
+    const table = tables.find((t) => String(t.id) === sTableId);
+    if (!table || table.items.length === 0) return;
+
     pendingSyncTablesRef.current.set(sTableId, {
       items: [],
       unprintedItems: [],
       customerName: "",
       status: "libre",
+      isDeleted: table.isBar, // Las cuentas barra desaparecen por completo
       timestamp: Date.now(),
     });
-
-    const table = tables.find((t) => String(t.id) === sTableId);
-    if (!table || table.items.length === 0) return;
 
     const baseTotal = table.items.reduce(
       (sum, item) => sum + item.product.price * item.quantity,
