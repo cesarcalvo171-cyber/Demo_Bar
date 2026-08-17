@@ -772,8 +772,15 @@ export const BarProvider = ({ children }) => {
   const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
     const sTableId = String(tableId);
     
-    // IMPORTANTE: Limpiar el escudo protector para que la mesa no vuelva a aparecer como "ocupada"
-    pendingSyncTablesRef.current.delete(sTableId);
+    // IMPORTANTE: Actualizar el escudo a estado "libre" y vacío, en lugar de borrarlo.
+    // Así, cuando vuelva el internet, la mesa no parpadeará como "ocupada" mientras la cola se sincroniza.
+    pendingSyncTablesRef.current.set(sTableId, {
+      items: [],
+      unprintedItems: [],
+      customerName: "",
+      status: "libre",
+      timestamp: Date.now(),
+    });
 
     const table = tables.find((t) => String(t.id) === sTableId);
     if (!table || table.items.length === 0) return;
