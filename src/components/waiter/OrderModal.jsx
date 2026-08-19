@@ -346,6 +346,7 @@ s               <label htmlFor="" className="text-red-600 text-sm">Ingresa Nombr
 
             {/* Botones de Acción Disponibles para Ambos Roles */}
             <div className="flex flex-col gap-2">
+              {/* Botón de Comanda oculto temporalmente a petición del usuario
               <button
                 type="button"
                 disabled={localUnprinted.length === 0}
@@ -359,6 +360,7 @@ s               <label htmlFor="" className="text-red-600 text-sm">Ingresa Nombr
                   </span>
                 )}
               </button>
+              */}
               <button
                 type="button"
                 disabled={localItems.length === 0}
