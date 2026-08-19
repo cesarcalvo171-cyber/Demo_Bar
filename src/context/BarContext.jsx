@@ -142,35 +142,52 @@ export const BarProvider = ({ children }) => {
               unprintedItems: pending.unprintedItems || [],
             };
           }
+          // Consolidar ítems duplicados por si existen filas repetidas en Supabase
+          const consolidatedItemsMap = new Map();
+          for (const o of tableOrders) {
+            const pid = String(o.product_id);
+            const pData = productsData.find((p) => String(p.id) === pid);
+            if (!pData) continue;
+
+            if (consolidatedItemsMap.has(pid)) {
+              const existing = consolidatedItemsMap.get(pid);
+              existing.quantity += o.quantity;
+            } else {
+              consolidatedItemsMap.set(pid, {
+                product: {
+                  id: pData.id,
+                  name: pData.name,
+                  price: Number(pData.price || 0),
+                  cost: Number(pData.cost || 0),
+                  category: pData.category_id,
+                },
+                quantity: o.quantity,
+              });
+            }
+          }
+
+          const consolidatedUnprintedMap = new Map();
+          for (const o of tableOrders.filter((o) => !o.is_printed)) {
+            const pid = String(o.product_id);
+            const pData = productsData.find((p) => String(p.id) === pid);
+            if (!pData) continue;
+
+            if (consolidatedUnprintedMap.has(pid)) {
+              const existing = consolidatedUnprintedMap.get(pid);
+              existing.quantity += o.quantity;
+            } else {
+              consolidatedUnprintedMap.set(pid, {
+                product: { id: pData.id, name: pData.name },
+                quantity: o.quantity,
+              });
+            }
+          }
+
           return {
             status: dbTable?.status || "libre",
             customerName: dbTable?.customer_name || "",
-            items: tableOrders.map((o) => {
-              const pData = productsData.find(
-                (p) => String(p.id) === String(o.product_id),
-              );
-              return {
-                product: {
-                  id: pData?.id,
-                  name: pData?.name,
-                  price: Number(pData?.price || 0),
-                  cost: Number(pData?.cost || 0),
-                  category: pData?.category_id,
-                },
-                quantity: o.quantity,
-              };
-            }),
-            unprintedItems: tableOrders
-              .filter((o) => !o.is_printed)
-              .map((o) => {
-                const pData = productsData.find(
-                  (p) => String(p.id) === String(o.product_id),
-                );
-                return {
-                  product: { id: pData?.id, name: pData?.name },
-                  quantity: o.quantity,
-                };
-              }),
+            items: Array.from(consolidatedItemsMap.values()),
+            unprintedItems: Array.from(consolidatedUnprintedMap.values()),
           };
         };
 

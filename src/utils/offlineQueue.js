@@ -82,6 +82,8 @@ export const getOfflineSnapshot = () => {
   }
 };
 
+let isSyncing = false;
+
 /**
  * Procesar y sincronizar todas las acciones pendientes con Supabase
  * @param {object} supabase - Cliente de Supabase
@@ -93,9 +95,15 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
     return { synced: 0, remaining: getOfflineQueue().length };
   }
 
+  if (isSyncing) {
+    console.warn('⚠️ Sincronización offline ya en progreso. Omitiendo llamada duplicada.');
+    return { synced: 0, remaining: getOfflineQueue().length };
+  }
+
   const queue = getOfflineQueue();
   if (queue.length === 0) return { synced: 0, remaining: 0 };
 
+  isSyncing = true;
   console.log(`🔄 Iniciando sincronización de ${queue.length} acciones pendientes con Supabase...`);
   let syncedCount = 0;
 
@@ -234,6 +242,8 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
 
   const remaining = getOfflineQueue().length;
   console.log(`🎉 Sincronización completada: ${syncedCount} enviadas, ${remaining} pendientes.`);
+
+  isSyncing = false;
 
   if (onComplete && typeof onComplete === 'function') {
     onComplete({ synced: syncedCount, remaining });
