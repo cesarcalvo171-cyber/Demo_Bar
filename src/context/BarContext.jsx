@@ -133,8 +133,12 @@ export const BarProvider = ({ children }) => {
         // Función auxiliar que resuelve los items de una mesa protegiendo contra race conditions
         const resolveTableItems = (tableId, dbTable, tableOrders) => {
           const sId = String(tableId);
-          const pending = pendingSyncTablesRef.current.get(sId);
-          if (pending && Date.now() - pending.timestamp < 300000) {
+          // El escudo de 5 min (300000ms) solo debe activarse si estamos realmente OFFLINE.
+          // Si estamos ONLINE, usamos un margen breve de 2 segundos (2000ms) para proteger mientras viaja la petición.
+          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+          const shieldDuration = isOffline ? 300000 : 2000;
+
+          if (pending && Date.now() - pending.timestamp < shieldDuration) {
             return {
               status: pending.status || (pending.items.length > 0 ? "ocupada" : "libre"),
               customerName: pending.customerName || (dbTable?.customer_name || ""),

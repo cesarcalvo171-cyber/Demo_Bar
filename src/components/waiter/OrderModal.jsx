@@ -51,82 +51,69 @@ export const OrderModal = ({ table, onClose }) => {
 
   // Agregar producto y guardar en tiempo real de forma 100% atómica
   const handleAddProduct = (product) => {
-    setLocalItems((prevItems) => {
-      let nextItems = [...prevItems];
-      const existingIndex = nextItems.findIndex(
-        (i) => String(i.product?.id) === String(product.id),
-      );
+    let nextItems = [...localItems];
+    const existingIndex = nextItems.findIndex(
+      (i) => String(i.product?.id) === String(product.id),
+    );
 
-      if (existingIndex >= 0) {
-        if (
-          product.stock !== null &&
-          nextItems[existingIndex].quantity >= product.stock
-        ) {
-          setErrorMsg(`Stock máximo alcanzado para ${product.name}`);
-          setTimeout(() => setErrorMsg(""), 3000);
-          return prevItems;
-        }
-        nextItems[existingIndex] = {
-          ...nextItems[existingIndex],
-          quantity: nextItems[existingIndex].quantity + 1,
-        };
-      } else {
-        nextItems.push({ product, quantity: 1 });
+    if (existingIndex >= 0) {
+      if (
+        product.stock !== null &&
+        nextItems[existingIndex].quantity >= product.stock
+      ) {
+        setErrorMsg(`Stock máximo alcanzado para ${product.name}`);
+        setTimeout(() => setErrorMsg(""), 3000);
+        return;
       }
+      nextItems[existingIndex] = {
+        ...nextItems[existingIndex],
+        quantity: nextItems[existingIndex].quantity + 1,
+      };
+    } else {
+      nextItems.push({ product, quantity: 1 });
+    }
 
-      // Lógica atómica para la Comanda (elementos sin imprimir)
-      setLocalUnprinted((prevUnprinted) => {
-        let nextUnprinted = [...prevUnprinted];
-        const existingUnprinted = nextUnprinted.findIndex(
-          (i) => String(i.product?.id) === String(product.id),
-        );
-        if (existingUnprinted >= 0) {
-          nextUnprinted[existingUnprinted] = {
-            ...nextUnprinted[existingUnprinted],
-            quantity: nextUnprinted[existingUnprinted].quantity + 1,
-          };
-        } else {
-          nextUnprinted.push({ product, quantity: 1 });
-        }
+    let nextUnprinted = [...localUnprinted];
+    const existingUnprinted = nextUnprinted.findIndex(
+      (i) => String(i.product?.id) === String(product.id),
+    );
+    if (existingUnprinted >= 0) {
+      nextUnprinted[existingUnprinted] = {
+        ...nextUnprinted[existingUnprinted],
+        quantity: nextUnprinted[existingUnprinted].quantity + 1,
+      };
+    } else {
+      nextUnprinted.push({ product, quantity: 1 });
+    }
 
-        // Sincronizar con el Contexto y Base de Datos
-        updateTableOrder(table.id, nextItems, customerName, nextUnprinted);
-        return nextUnprinted;
-      });
-
-      return nextItems;
-    });
+    setLocalItems(nextItems);
+    setLocalUnprinted(nextUnprinted);
+    updateTableOrder(table.id, nextItems, customerName, nextUnprinted);
   };
 
   // Reducir o eliminar cantidad de forma atómica
   const handleQuantity = (productId, delta) => {
-    setLocalItems((prevItems) => {
-      let nextItems = prevItems
-        .map((i) => {
-          if (String(i.product?.id) === String(productId)) {
-            return { ...i, quantity: i.quantity + delta };
-          }
-          return i;
-        })
-        .filter((i) => i.quantity > 0);
+    let nextItems = localItems
+      .map((i) => {
+        if (String(i.product?.id) === String(productId)) {
+          return { ...i, quantity: i.quantity + delta };
+        }
+        return i;
+      })
+      .filter((i) => i.quantity > 0);
 
-      setLocalUnprinted((prevUnprinted) => {
-        let nextUnprinted = prevUnprinted
-          .map((i) => {
-            if (String(i.product?.id) === String(productId)) {
-              return { ...i, quantity: Math.max(0, i.quantity + delta) };
-            }
-            return i;
-          })
-          .filter((i) => i.quantity > 0);
+    let nextUnprinted = localUnprinted
+      .map((i) => {
+        if (String(i.product?.id) === String(productId)) {
+          return { ...i, quantity: Math.max(0, i.quantity + delta) };
+        }
+        return i;
+      })
+      .filter((i) => i.quantity > 0);
 
-        // Sincronizar con el Contexto y Base de Datos
-        updateTableOrder(table.id, nextItems, customerName, nextUnprinted);
-        return nextUnprinted;
-      });
-
-      return nextItems;
-    });
+    setLocalItems(nextItems);
+    setLocalUnprinted(nextUnprinted);
+    updateTableOrder(table.id, nextItems, customerName, nextUnprinted);
   };
 
   const calculateTotal = () => {
