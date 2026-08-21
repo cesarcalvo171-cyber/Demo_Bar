@@ -11,13 +11,25 @@ export const AdminShiftHistory = () => {
 
   // Funciones de utilidad para fechas
   const getMonthYear = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleDateString('es-NI', { month: 'long', year: 'numeric' }).toUpperCase();
+    if (!isoString) return 'SIN FECHA';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'SIN FECHA';
+      return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase();
+    } catch (e) {
+      return 'SIN FECHA';
+    }
   };
 
   const getDay = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleDateString('es-NI', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (!isoString) return '--';
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '--';
+      return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+      return '--';
+    }
   };
 
   // Calcular métricas globales actuales (Día y Mes)
