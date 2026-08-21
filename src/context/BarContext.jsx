@@ -138,6 +138,7 @@ export const BarProvider = ({ children }) => {
           const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
           const shieldDuration = isOffline ? 300000 : 2000;
 
+          const pending = pendingSyncTablesRef.current.get(sId);
           if (pending && Date.now() - pending.timestamp < shieldDuration) {
             return {
               status: pending.status || (pending.items.length > 0 ? "ocupada" : "libre"),
