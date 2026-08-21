@@ -292,119 +292,116 @@ export const BarProvider = ({ children }) => {
         throw new Error("Fallo al obtener turnos: " + shiftsError.message);
       }
 
-      if (shiftsData && shiftsData.length > 0) {
-        const activeShift = shiftsData.find((s) => !s.closed_at);
-        const closedShifts = shiftsData.filter((s) => s.closed_at);
-        const closedShiftIds = new Set(closedShifts.map((s) => s.id));
+      const activeShift = (shiftsData || []).find((s) => !s.closed_at);
+      const closedShifts = (shiftsData || []).filter((s) => s.closed_at);
+      const closedShiftIds = new Set(closedShifts.map((s) => s.id));
 
-        if (activeShift) {
-          setCurrentShiftId(activeShift.id);
-          setShiftStartTime(activeShift.opened_at);
-        }
+      if (activeShift) {
+        setCurrentShiftId(activeShift.id);
+        setShiftStartTime(activeShift.opened_at);
+      }
 
-        // Fetch all invoices
-        const { data: invData, error: invError } = await supabase.from("invoices").select("*");
-        const { data: invItemsData } = await supabase
-          .from("invoice_items")
-          .select("*");
+      // Fetch all invoices
+      const { data: invData, error: invError } = await supabase.from("invoices").select("*");
+      const { data: invItemsData } = await supabase
+        .from("invoice_items")
+        .select("*");
 
-        if (invError) {
-          console.error("Error al obtener facturas de Supabase:", invError);
-          throw new Error("Fallo al obtener facturas: " + invError.message);
-        }
+      if (invError) {
+        console.error("Error al obtener facturas de Supabase:", invError);
+        throw new Error("Fallo al obtener facturas: " + invError.message);
+      }
 
-        const allMappedInvoices = (invData || []).map((inv) => {
-          const items = (invItemsData || [])
-            .filter((i) => i.invoice_id === inv.id)
-            .map((i) => {
-              const cleanItemName = (i.product_name || "").trim().toLowerCase();
-              const pMatch = (productsData || []).find(
-                (p) => p.name?.trim().toLowerCase() === cleanItemName
-              ) || (INITIAL_PRODUCTS || []).find(
-                (p) => p.name?.trim().toLowerCase() === cleanItemName
-              );
+      const allMappedInvoices = (invData || []).map((inv) => {
+        const items = (invItemsData || [])
+          .filter((i) => i.invoice_id === inv.id)
+          .map((i) => {
+            const cleanItemName = (i.product_name || "").trim().toLowerCase();
+            const pMatch = (productsData || []).find(
+              (p) => p.name?.trim().toLowerCase() === cleanItemName
+            ) || (INITIAL_PRODUCTS || []).find(
+              (p) => p.name?.trim().toLowerCase() === cleanItemName
+            );
 
-              let resolvedCat = pMatch?.category;
-              if (!resolvedCat || resolvedCat === "General" || resolvedCat === "general") {
-                if (cleanItemName.includes("toña") || cleanItemName.includes("clasica") || cleanItemName.includes("spark") || cleanItemName.includes("heineken") || cleanItemName.includes("miller") || cleanItemName.includes("sol") || cleanItemName.includes("bambu") || cleanItemName.includes("smirnof")) {
-                  resolvedCat = "cervezas";
-                } else if (cleanItemName.includes("nachos") || cleanItemName.includes("alitas") || cleanItemName.includes("salchipapa") || cleanItemName.includes("hamburguesa") || cleanItemName.includes("hot dog") || cleanItemName.includes("consume") || cleanItemName.includes("toston")) {
-                  resolvedCat = "comida";
-                } else if (cleanItemName.includes("reserva") || cleanItemName.includes("lite") || cleanItemName.includes("plata") || cleanItemName.includes("ron") || cleanItemName.includes("licor")) {
-                  resolvedCat = "licores";
-                } else if (cleanItemName.includes("chubby") || cleanItemName.includes("gatorade") || cleanItemName.includes("power") || cleanItemName.includes("agua") || cleanItemName.includes("pepsi") || cleanItemName.includes("lipton")) {
-                  resolvedCat = "Bebida sin alcohol";
-                } else if (cleanItemName.includes("chiveria") || cleanItemName.includes("snack")) {
-                  resolvedCat = "chiveria";
-                } else {
-                  resolvedCat = "General";
-                }
+            let resolvedCat = pMatch?.category;
+            if (!resolvedCat || resolvedCat === "General" || resolvedCat === "general") {
+              if (cleanItemName.includes("toña") || cleanItemName.includes("clasica") || cleanItemName.includes("spark") || cleanItemName.includes("heineken") || cleanItemName.includes("miller") || cleanItemName.includes("sol") || cleanItemName.includes("bambu") || cleanItemName.includes("smirnof")) {
+                resolvedCat = "cervezas";
+              } else if (cleanItemName.includes("nachos") || cleanItemName.includes("alitas") || cleanItemName.includes("salchipapa") || cleanItemName.includes("hamburguesa") || cleanItemName.includes("hot dog") || cleanItemName.includes("consume") || cleanItemName.includes("toston")) {
+                resolvedCat = "comida";
+              } else if (cleanItemName.includes("reserva") || cleanItemName.includes("lite") || cleanItemName.includes("plata") || cleanItemName.includes("ron") || cleanItemName.includes("licor")) {
+                resolvedCat = "licores";
+              } else if (cleanItemName.includes("chubby") || cleanItemName.includes("gatorade") || cleanItemName.includes("power") || cleanItemName.includes("agua") || cleanItemName.includes("pepsi") || cleanItemName.includes("lipton")) {
+                resolvedCat = "Bebida sin alcohol";
+              } else if (cleanItemName.includes("chiveria") || cleanItemName.includes("snack")) {
+                resolvedCat = "chiveria";
+              } else {
+                resolvedCat = "General";
               }
+            }
 
-              return {
-                name: i.product_name,
-                quantity: i.quantity,
-                price: Number(i.price_at_sale),
-                cost: Number(i.cost_at_sale),
-                category: resolvedCat,
-              };
-            });
+            return {
+              name: i.product_name,
+              quantity: i.quantity,
+              price: Number(i.price_at_sale),
+              cost: Number(i.cost_at_sale),
+              category: resolvedCat,
+            };
+          });
+        return {
+          id: inv.id,
+          shiftId: inv.shift_id,
+          tableName: inv.table_name,
+          customerName: inv.customer_name,
+          waiterName: inv.waiter_name,
+          total: Number(inv.total),
+          paymentMethod: inv.payment_method,
+          transactionId: inv.transaction_id,
+          fullDate: inv.created_at,
+          date: new Date(inv.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          items,
+        };
+      });
+
+      // BLINDAJE DE CORTE Z: Incluye facturas del turno activo + cualquier factura huérfana/no cerrada
+      currentShiftInvoices = allMappedInvoices.filter((i) => {
+        if (activeShift && i.shiftId === activeShift.id) return true;
+        // Si no tiene shiftId o su shiftId no está entre los turnos formalmente cerrados, pertenece al turno actual
+        if (!i.shiftId || !closedShiftIds.has(i.shiftId)) return true;
+        return false;
+      });
+
+      setPaidInvoices(currentShiftInvoices);
+
+      // History logic (Mapeo incondicional directo)
+      calculatedHistory = closedShifts.map((cs) => {
+        const cashier = (usersData || []).find(
+            (u) => u.id === cs.closed_by || u.id === cs.opened_by
+          );
           return {
-            id: inv.id,
-            shiftId: inv.shift_id,
-            tableName: inv.table_name,
-            customerName: inv.customer_name,
-            waiterName: inv.waiter_name,
-            total: Number(inv.total),
-            paymentMethod: inv.payment_method,
-            transactionId: inv.transaction_id,
-            fullDate: inv.created_at,
-            date: new Date(inv.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            items,
+            id: cs.id,
+            cashierName: cashier?.name || "Cajero Principal",
+            startTime: cs.opened_at,
+            endTime: cs.closed_at,
+            totalSales: Number(cs.total_real || cs.total_expected),
+            totalCash: allMappedInvoices
+              .filter(
+                (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
+              )
+              .reduce((s, i) => s + i.total, 0),
+            totalCard: allMappedInvoices
+              .filter(
+                (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
+              )
+              .reduce((s, i) => s + i.total, 0),
+            invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
           };
         });
 
-        // BLINDAJE DE CORTE Z: Incluye facturas del turno activo + cualquier factura huérfana/no cerrada
-        currentShiftInvoices = allMappedInvoices.filter((i) => {
-          if (activeShift && i.shiftId === activeShift.id) return true;
-          // Si no tiene shiftId o su shiftId no está entre los turnos formalmente cerrados, pertenece al turno actual
-          if (!i.shiftId || !closedShiftIds.has(i.shiftId)) return true;
-          return false;
-        });
-
-        setPaidInvoices(currentShiftInvoices);
-
-        // History logic
-        calculatedHistory = closedShifts.map((cs) => {
-          const cashier = (usersData || []).find(
-              (u) => u.id === cs.closed_by || u.id === cs.opened_by
-            );
-            return {
-              id: cs.id,
-              cashierName: cashier?.name || "Cajero Principal",
-              startTime: cs.opened_at,
-              endTime: cs.closed_at,
-              totalSales: Number(cs.total_real || cs.total_expected),
-              totalCash: allMappedInvoices
-                .filter(
-                  (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
-                )
-                .reduce((s, i) => s + i.total, 0),
-              totalCard: allMappedInvoices
-                .filter(
-                  (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
-                )
-                .reduce((s, i) => s + i.total, 0),
-              invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
-            };
-          });
-        setCashRegisterHistory(calculatedHistory);
-      } else {
-        setCashRegisterHistory([]);
-      }
+      setCashRegisterHistory(calculatedHistory);
 
       // Fetch expenses
       const { data: expData } = await supabase.from("expenses").select("*");
