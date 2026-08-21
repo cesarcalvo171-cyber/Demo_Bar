@@ -2,7 +2,7 @@
 // Motor de Cola Offline y Sincronización Local-First para Zorix POS / Moncho's Bar
 
 const QUEUE_KEY = 'bar_offline_queue_v1';
-const SNAPSHOT_KEY = 'bar_offline_snapshot_v1';
+const SNAPSHOT_KEY = 'bar_offline_snapshot_v2';
 
 /**
  * Obtener la cola de operaciones pendientes desde localStorage
