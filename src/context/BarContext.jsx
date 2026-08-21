@@ -282,10 +282,16 @@ export const BarProvider = ({ children }) => {
       }
 
       // Fetch Shifts & Financials
-      const { data: shiftsData } = await supabase
+      const { data: shiftsData, error: shiftsError } = await supabase
         .from("shifts")
         .select("*")
         .order("opened_at", { ascending: false });
+
+      if (shiftsError) {
+        console.error("Error al obtener turnos de Supabase:", shiftsError);
+        throw new Error("Fallo al obtener turnos: " + shiftsError.message);
+      }
+
       if (shiftsData && shiftsData.length > 0) {
         const activeShift = shiftsData.find((s) => !s.closed_at);
         const closedShifts = shiftsData.filter((s) => s.closed_at);
@@ -297,10 +303,15 @@ export const BarProvider = ({ children }) => {
         }
 
         // Fetch all invoices
-        const { data: invData } = await supabase.from("invoices").select("*");
+        const { data: invData, error: invError } = await supabase.from("invoices").select("*");
         const { data: invItemsData } = await supabase
           .from("invoice_items")
           .select("*");
+
+        if (invError) {
+          console.error("Error al obtener facturas de Supabase:", invError);
+          throw new Error("Fallo al obtener facturas: " + invError.message);
+        }
 
         const allMappedInvoices = (invData || []).map((inv) => {
           const items = (invItemsData || [])
