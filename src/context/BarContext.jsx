@@ -420,6 +420,8 @@ export const BarProvider = ({ children }) => {
         );
       }
 
+      setCashRegisterHistory(calculatedHistory);
+      
       // Guardar snapshot para uso 100% offline
       saveOfflineSnapshot({
         products: mappedProducts,
