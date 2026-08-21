@@ -402,6 +402,8 @@ export const BarProvider = ({ children }) => {
             };
           });
         setCashRegisterHistory(calculatedHistory);
+      } else {
+        setCashRegisterHistory([]);
       }
 
       // Fetch expenses
@@ -419,8 +421,6 @@ export const BarProvider = ({ children }) => {
           })),
         );
       }
-
-      setCashRegisterHistory(calculatedHistory);
       
       // Guardar snapshot para uso 100% offline
       saveOfflineSnapshot({
