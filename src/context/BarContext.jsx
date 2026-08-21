@@ -510,6 +510,11 @@ export const BarProvider = ({ children }) => {
         { event: "*", schema: "public", table: "categories" },
         triggerSync,
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "shifts" },
+        triggerSync,
+      )
       .subscribe();
 
     // 2. High-frequency 2-second background sync fallback
