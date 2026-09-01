@@ -1,11 +1,14 @@
 import React from 'react';
-import { DollarSign, Clock, Users, Edit } from 'lucide-react';
+import { DollarSign, Clock, Users, Edit, Trash2 } from 'lucide-react';
 import { MdLocalBar } from "react-icons/md";
+import { useBar } from '../../context/BarContext';
 
 export const OrderCard = ({ table, onCheckout, onEdit }) => {
+  const { deleteTable } = useBar();
   const total = table.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const isPending = table.status === 'pendiente_pago';
   const isBar = table.isBar;
+  const isEmpty = table.items.length === 0 && total === 0;
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col h-full animate-in fade-in zoom-in-95 duration-200 transition-all ${
@@ -70,19 +73,31 @@ export const OrderCard = ({ table, onCheckout, onEdit }) => {
           {onEdit && (
             <button
               onClick={() => onEdit()}
-              className="flex items-center justify-center p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-2 p-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors cursor-pointer shadow-sm shadow-blue-600/20"
               title="Editar Pedido"
             >
               <Edit className="w-5 h-5" />
+              Editar
             </button>
           )}
-          <button
-            onClick={() => onCheckout(table)}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition-colors cursor-pointer shadow-sm shadow-emerald-600/20"
-          >
-            <DollarSign className="w-5 h-5" />
-            Cobrar Mesa
-          </button>
+          {isEmpty ? (
+            <button
+              onClick={() => deleteTable(table.id)}
+              className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition-colors cursor-pointer shadow-sm shadow-rose-600/20"
+              title="Eliminar Cuenta Vacía"
+            >
+              <Trash2 className="w-5 h-5" />
+              Eliminar
+            </button>
+          ) : (
+            <button
+              onClick={() => onCheckout(table)}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition-colors cursor-pointer shadow-sm shadow-emerald-600/20"
+            >
+              <DollarSign className="w-5 h-5" />
+              Cobrar Mesa
+            </button>
+          )}
         </div>
       </div>
     </div>
