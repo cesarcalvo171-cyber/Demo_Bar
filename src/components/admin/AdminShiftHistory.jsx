@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
-import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers, TrendingUp } from 'lucide-react';
+import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers, TrendingUp, Eye, X } from 'lucide-react';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 
 import { INITIAL_PRODUCTS } from '../../mock/initialData';
@@ -8,6 +8,7 @@ import { INITIAL_PRODUCTS } from '../../mock/initialData';
 export const AdminShiftHistory = () => {
   const { cashRegisterHistory, products, categories } = useBar();
   const [expandedShift, setExpandedShift] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   // Funciones de utilidad para fechas
   const getMonthYear = (isoString) => {
@@ -415,6 +416,7 @@ export const AdminShiftHistory = () => {
                                       <th className="py-2.5 px-4">Método</th>
                                       <th className="py-2.5 px-4">Hora</th>
                                       <th className="py-2.5 px-4 text-right">Monto</th>
+                                      <th className="py-2.5 px-4 text-center">Acción</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
@@ -431,6 +433,14 @@ export const AdminShiftHistory = () => {
                                         </td>
                                         <td className="py-2.5 px-4 text-slate-400">{inv.date}</td>
                                         <td className="py-2.5 px-4 text-right font-black text-slate-900">C${inv.total.toFixed(2)}</td>
+                                        <td className="py-2.5 px-4 text-center">
+                                          <button
+                                            onClick={() => setSelectedInvoice(inv)}
+                                            className="text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded text-[10px] font-bold flex items-center justify-center gap-1 w-full"
+                                          >
+                                            <Eye className="w-3 h-3" /> Ver
+                                          </button>
+                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -449,6 +459,51 @@ export const AdminShiftHistory = () => {
           ))
         )}
       </div>
+
+      {/* Modal de Detalle de Factura */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h3 className="font-black text-slate-800 text-lg">Factura {selectedInvoice.id}</h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  {selectedInvoice.tableName} • {selectedInvoice.customerName}
+                </p>
+              </div>
+              <button onClick={() => setSelectedInvoice(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4">
+              <table className="w-full text-left text-sm">
+                <thead className="text-[10px] uppercase text-slate-400 border-b border-slate-100">
+                  <tr>
+                    <th className="pb-2 font-bold w-12 text-center">Cant.</th>
+                    <th className="pb-2 font-bold">Producto</th>
+                    <th className="pb-2 text-right font-bold">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {(selectedInvoice.items || []).map((item, idx) => (
+                    <tr key={idx} className="text-slate-600">
+                      <td className="py-3 font-semibold text-center">{item.quantity}</td>
+                      <td className="py-3">{item.name}</td>
+                      <td className="py-3 text-right font-black">C${(item.quantity * item.price).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+              <span className="text-sm font-bold text-slate-500">Total Facturado</span>
+              <span className="text-xl font-black text-emerald-600">C${selectedInvoice.total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
