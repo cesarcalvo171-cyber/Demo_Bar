@@ -196,87 +196,64 @@ export const BarProvider = ({ children }) => {
           };
         };
 
-        // Assemble initial tables array with their orders
-        newTables = INITIAL_TABLES.map((initTable) => {
-          const dbTable = tablesData.find(
-            (t) => String(t.id) === String(initTable.id),
-          );
-          const tableOrders =
-            ordersData?.filter(
-              (o) => String(o.table_id) === String(initTable.id),
-            ) || [];
-
-          const resolved = resolveTableItems(initTable.id, dbTable, tableOrders);
-
-          return {
-            ...initTable,
-            id: String(initTable.id),
-            status: resolved.status,
-            customerName: resolved.customerName,
-            assignedWaiterId: dbTable?.assigned_waiter_id,
-            createdAt: dbTable?.created_at,
-            items: resolved.items,
-            unprintedItems: resolved.unprintedItems,
-          };
-        });
-
-        // Add dynamically created bar accounts
-        const barAccounts = tablesData.filter((t) => t.is_bar_account);
-        for (const barAcc of barAccounts) {
-          const pending = pendingSyncTablesRef.current.get(String(barAcc.id));
+        // Assemble active tables from database
+        newTables = [];
+        for (const dbTable of tablesData) {
+          const sId = String(dbTable.id);
+          const pending = pendingSyncTablesRef.current.get(sId);
           if (pending && pending.isDeleted && Date.now() - pending.timestamp < 300000) {
-            continue; // Ignorar cuentas barra que fueron cobradas localmente
+            continue; // Ignorar mesas que fueron cobradas o canceladas localmente
           }
 
           const tableOrders =
             ordersData?.filter(
-              (o) => String(o.table_id) === String(barAcc.id),
+              (o) => String(o.table_id) === sId,
             ) || [];
-          const resolved = resolveTableItems(barAcc.id, barAcc, tableOrders);
+
+          const resolved = resolveTableItems(sId, dbTable, tableOrders);
+
+          // Si la mesa está en estado libre y no tiene items ni pending activo, no la mostramos como mesa activa
+          if (resolved.status === "libre" && resolved.items.length === 0 && !pending) {
+            continue;
+          }
+
           newTables.push({
-            id: String(barAcc.id),
-            name: barAcc.name,
+            id: sId,
+            name: dbTable.name || (dbTable.is_bar_account ? "Barra" : `Mesa ${sId}`),
             status: resolved.status,
             customerName: resolved.customerName,
-            assignedWaiterId: barAcc.assigned_waiter_id,
-            createdAt: barAcc.created_at,
-            isBar: true,
+            assignedWaiterId: dbTable.assigned_waiter_id,
+            assignedWaiterName: usersData?.find(u => u.id === dbTable.assigned_waiter_id)?.name,
+            createdAt: dbTable.created_at,
+            isBar: Boolean(dbTable.is_bar_account),
             items: resolved.items,
             unprintedItems: resolved.unprintedItems,
           });
         }
 
-        // Add extra normal tables created dynamically (e.g. Mesa 11, Mesa 12)
-        const extraTables = tablesData.filter(
-          (t) => !t.is_bar_account && !INITIAL_TABLES.some((init) => String(init.id) === String(t.id))
-        );
-        for (const extra of extraTables) {
-          const tableOrders =
-            ordersData?.filter(
-              (o) => String(o.table_id) === String(extra.id),
-            ) || [];
-          const resolved = resolveTableItems(extra.id, extra, tableOrders);
-          newTables.push({
-            id: String(extra.id),
-            name: extra.name || `Mesa ${extra.id}`,
-            status: resolved.status,
-            customerName: resolved.customerName,
-            assignedWaiterId: extra.assigned_waiter_id,
-            createdAt: extra.created_at,
-            isBar: false,
-            items: resolved.items,
-            unprintedItems: resolved.unprintedItems,
-          });
+        // Incorporar mesas creadas en cola offline o pending
+        for (const [pId, pData] of pendingSyncTablesRef.current.entries()) {
+          if (!pData.isDeleted && !newTables.some((t) => String(t.id) === String(pId))) {
+            newTables.push({
+              id: pId,
+              name: pData.name || (pId.startsWith("barra_") ? "Barra" : `Mesa ${pId}`),
+              status: pData.status || "ocupada",
+              customerName: pData.customerName || "",
+              assignedWaiterId: currentUser?.id,
+              assignedWaiterName: currentUser?.name,
+              createdAt: new Date().toISOString(),
+              isBar: pId.startsWith("barra_"),
+              items: pData.items || [],
+              unprintedItems: pData.unprintedItems || [],
+            });
+          }
         }
 
-        // Sort tables numerically so Mesa 1, Mesa 2, ... Mesa 11, Mesa 12 are in order
+        // Ordenar mesas cronológicamente
         newTables.sort((a, b) => {
           if (a.isBar && !b.isBar) return 1;
           if (!a.isBar && b.isBar) return -1;
-          const numA = parseInt(a.id, 10);
-          const numB = parseInt(b.id, 10);
-          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-          return a.name.localeCompare(b.name);
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
         });
 
         setTables(newTables);
@@ -535,13 +512,18 @@ export const BarProvider = ({ children }) => {
     items,
     customerName = "",
     unprintedItems = null,
+    tableName = null,
   ) => {
     try {
       const isOccupied = items.length > 0;
       const sTableId = String(tableId);
 
+      const targetTable = tables.find((t) => String(t.id) === sTableId);
+      const effectiveName = tableName || targetTable?.name || `Mesa ${sTableId}`;
+
       // 1. Record in-flight pending state immediately to protect against background overwrites
       pendingSyncTablesRef.current.set(sTableId, {
+        name: effectiveName,
         items,
         unprintedItems: unprintedItems || [],
         customerName,
@@ -555,9 +537,11 @@ export const BarProvider = ({ children }) => {
           if (String(t.id) === sTableId) {
             return {
               ...t,
+              name: effectiveName,
               status: isOccupied ? "ocupada" : "libre",
               customerName: customerName,
               assignedWaiterId: currentUser?.id,
+              assignedWaiterName: currentUser?.name || t.assignedWaiterName,
               items: items,
               unprintedItems: unprintedItems || [],
             };
@@ -580,13 +564,12 @@ export const BarProvider = ({ children }) => {
           const { error: e1 } = await supabase.from("tables").upsert(
             {
               id: sTableId,
-              name:
-                tables.find((t) => String(t.id) === sTableId)?.name ||
-                `Mesa ${sTableId}`,
+              name: effectiveName,
               status: isOccupied ? "ocupada" : "libre",
               customer_name: customerName,
               assigned_waiter_id: currentUser?.id,
               created_at: isOccupied ? new Date().toISOString() : null,
+              is_bar_account: Boolean(targetTable?.isBar),
             },
             { onConflict: "id" },
           );
@@ -618,9 +601,10 @@ export const BarProvider = ({ children }) => {
           console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
           
           // Encolar acción para sincronizarla cuando vuelva el internet
-          const isBar = tables.find((t) => String(t.id) === sTableId)?.isBar || false;
+          const isBar = Boolean(targetTable?.isBar);
           enqueueOfflineAction("UPDATE_ORDER", {
             tableId: sTableId,
+            tableName: effectiveName,
             items: items,
             isBar: isBar,
             customerName: customerName,
@@ -672,11 +656,13 @@ export const BarProvider = ({ children }) => {
   const addBarAccount = async (customerName) => {
     try {
       const newBarId = `barra_${Date.now()}`;
+      const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Barra";
 
       pendingSyncTablesRef.current.set(newBarId, {
+        name: "Barra",
         items: [],
         unprintedItems: [],
-        customerName,
+        customerName: clientName,
         status: "ocupada",
         timestamp: Date.now(),
       });
@@ -688,8 +674,9 @@ export const BarProvider = ({ children }) => {
           id: newBarId,
           name: "Barra",
           status: "ocupada",
-          customerName: customerName,
+          customerName: clientName,
           assignedWaiterId: currentUser?.id,
+          assignedWaiterName: currentUser?.name,
           createdAt: new Date().toISOString(),
           isBar: true,
           items: [],
@@ -702,7 +689,7 @@ export const BarProvider = ({ children }) => {
         name: "Barra",
         status: "ocupada",
         is_bar_account: true,
-        customer_name: customerName,
+        customer_name: clientName,
         assigned_waiter_id: currentUser?.id,
         created_at: new Date().toISOString(),
       });
@@ -723,53 +710,76 @@ export const BarProvider = ({ children }) => {
       }
     }
   };
-  // Función para crear una nueva mesa consecutiva (Mesa 11, Mesa 12, etc.)
-  const addNewTable = async () => {
+
+  // Función para abrir una mesa con número de mesa y cliente dinámicos
+  const openTable = async ({ tableNumber, customerName }) => {
     try {
-      // 1. Consultar a Supabase todas las mesas existentes para encontrar el número más alto
-      const { data: allTables } = await supabase.from('tables').select('id, name, is_bar_account');
+      const cleanInput = String(tableNumber || '').trim();
+      const tableName = cleanInput.toLowerCase().startsWith('mesa') || isNaN(cleanInput)
+        ? cleanInput
+        : `Mesa ${cleanInput}`;
       
-      let maxNumber = 10;
-      if (allTables && allTables.length > 0) {
-        allTables.forEach(t => {
-          if (!t.is_bar_account) {
-            const num = parseInt(t.id, 10);
-            if (!isNaN(num) && num > maxNumber) {
-              maxNumber = num;
-            }
-          }
-        });
-      }
+      const newTableId = `mesa_${Date.now()}`;
+      const clientName = customerName ? customerName.trim() : "";
 
-      const nextNumber = maxNumber + 1;
-      const nextId = String(nextNumber);
-      const tableName = `Mesa ${nextNumber}`;
+      pendingSyncTablesRef.current.set(newTableId, {
+        name: tableName || "Mesa",
+        items: [],
+        unprintedItems: [],
+        customerName: clientName,
+        status: "ocupada",
+        timestamp: Date.now(),
+      });
 
-      // 2. Inserta la nueva mesa en Supabase
+      const newTableObj = {
+        id: newTableId,
+        name: tableName || "Mesa",
+        status: "ocupada",
+        customerName: clientName,
+        assignedWaiterId: currentUser?.id,
+        assignedWaiterName: currentUser?.name,
+        createdAt: new Date().toISOString(),
+        isBar: false,
+        items: [],
+        unprintedItems: [],
+      };
+
+      // OPTIMISTIC UI UPDATE
+      setTables((prev) => [...prev, newTableObj]);
+
       const { error } = await supabase.from("tables").insert({
-        id: nextId,
-        name: tableName,
-        status: "libre",
+        id: newTableId,
+        name: tableName || "Mesa",
+        status: "ocupada",
         is_bar_account: false,
+        customer_name: clientName,
+        assigned_waiter_id: currentUser?.id,
         created_at: new Date().toISOString(),
       });
 
       if (error) {
-        console.error("Error creando mesa:", error);
-        alert("No se pudo crear la mesa: " + error.message);
-        return null;
+        if (!navigator.onLine || error.message?.includes("Failed to fetch")) {
+          console.warn("📵 Creación de mesa offline. Se sincronizará al agregar productos.");
+        } else {
+          console.error("Error creating table in Supabase:", error);
+        }
       }
-
-      // 3. Sincroniza los datos
-      await fetchData(true);
-      return nextId;
+      return newTableId;
     } catch (err) {
-      console.error("Crash creando mesa:", err);
+      console.error("Crash al abrir mesa:", err);
       return null;
     }
   };
 
-  // Función para eliminar mesas extras creadas dinámicamente
+  const addNewTable = async () => {
+    // Compatibilidad: abre una mesa solicitando los datos
+    const num = prompt("Ingresa el número de mesa:");
+    if (!num) return null;
+    const client = prompt("Ingresa el nombre del cliente (opcional):") || "";
+    return await openTable({ tableNumber: num, customerName: client });
+  };
+
+  // Función para eliminar mesas creadas dinámicamente
   const deleteTable = async (tableId) => {
     try {
       const sTableId = String(tableId);
@@ -790,7 +800,7 @@ export const BarProvider = ({ children }) => {
 
       await fetchData(true);
     } catch (err) {
-      console.error("Error al eliminar mesa extra:", err);
+      console.error("Error al eliminar mesa:", err);
       alert("Error al eliminar la mesa: " + err.message);
     }
   };
@@ -839,9 +849,11 @@ export const BarProvider = ({ children }) => {
       unprintedItems: [],
       customerName: "",
       status: "libre",
-      isDeleted: table.isBar, // Las cuentas barra desaparecen por completo
+      isDeleted: true, // Las mesas cobradas desaparecen por completo de la vista activa
       timestamp: Date.now(),
     });
+
+    setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
 
     const baseTotal = table.items.reduce(
       (sum, item) => sum + item.product.price * item.quantity,
@@ -995,16 +1007,7 @@ export const BarProvider = ({ children }) => {
       }
 
       // 4. Free table and delete orders
-      if (table.isBar) {
-        await supabase.from("tables").delete().eq("id", sTableId);
-      } else {
-        await supabase.from("tables").update({
-          status: "libre",
-          customer_name: null,
-          assigned_waiter_id: null,
-          created_at: null,
-        }).eq("id", sTableId);
-      }
+      await supabase.from("tables").delete().eq("id", sTableId);
       await supabase.from("orders").delete().eq("table_id", sTableId);
 
       fetchData(true);
@@ -1014,7 +1017,7 @@ export const BarProvider = ({ children }) => {
         invoice: invoicePayload,
         invoiceItems: invoiceItemsPayload,
         stockDeductions,
-        tableInfo: { id: sTableId, isBar: table.isBar }
+        tableInfo: { id: sTableId, isBar: Boolean(table?.isBar) }
       });
       setPendingSyncCount(getOfflineQueue().length);
     }
@@ -1079,41 +1082,27 @@ export const BarProvider = ({ children }) => {
 
   const cancelTableOrder = async (tableId) => {
     const sTableId = String(tableId);
-    const table = tables.find((t) => String(t.id) === sTableId);
 
     // OPTIMISTIC LOCAL UPDATE
-    if (table?.isBar) {
-      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
-    } else {
-      setTables((prev) =>
-        prev.map((t) =>
-          String(t.id) === sTableId
-            ? { ...t, status: "libre", customerName: "", items: [], unprintedItems: [] }
-            : t
-        )
-      );
-    }
+    setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+    pendingSyncTablesRef.current.set(sTableId, {
+      isDeleted: true,
+      timestamp: Date.now(),
+    });
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId, isBar: Boolean(table?.isBar) });
+      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId });
       setPendingSyncCount(getOfflineQueue().length);
       return;
     }
 
     try {
       await supabase.from("orders").delete().eq("table_id", sTableId);
-      if (table?.isBar) {
-        await supabase.from("tables").delete().eq("id", sTableId);
-      } else {
-        await supabase
-          .from("tables")
-          .update({ status: "libre", customer_name: null })
-          .eq("id", sTableId);
-      }
+      await supabase.from("tables").delete().eq("id", sTableId);
       fetchData(true);
     } catch (err) {
       console.error("Error al cancelar orden en Supabase, encolando:", err);
-      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId, isBar: Boolean(table?.isBar) });
+      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId });
       setPendingSyncCount(getOfflineQueue().length);
     }
   };
@@ -1399,6 +1388,7 @@ export const BarProvider = ({ children }) => {
         login,
         loginMesero,
         logout,
+        openTable,
         addNewTable,
         deleteTable,
         categories,

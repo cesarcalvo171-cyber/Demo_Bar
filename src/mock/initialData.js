@@ -540,12 +540,6 @@ export const INITIAL_PRODUCTS = [
   
 ];
 
-// Generar 10 mesas iniciales
-export const INITIAL_TABLES = Array.from({ length: 10 }, (_, index) => ({
-  id: String(index + 1),
-  name: `Mesa ${index + 1}`,
-  status: "libre",
-  customerName: "",
-  items: [],
-  createdAt: null,
-}));
+// Mesas dinámicas sin numeración predefinida
+export const INITIAL_TABLES = [];
+

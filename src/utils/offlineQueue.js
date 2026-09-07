@@ -142,18 +142,9 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
             }
           }
 
-          // 4. Liberar mesa
+          // 4. Liberar mesa eliminándola de mesas activas
           if (tableInfo) {
-            if (tableInfo.isBar) {
-              await supabase.from('tables').delete().eq('id', String(tableInfo.id));
-            } else {
-              await supabase.from('tables').update({
-                status: 'libre',
-                customer_name: null,
-                assigned_waiter_id: null,
-                created_at: null,
-              }).eq('id', String(tableInfo.id));
-            }
+            await supabase.from('tables').delete().eq('id', String(tableInfo.id));
             await supabase.from('orders').delete().eq('table_id', String(tableInfo.id));
           }
 
@@ -162,26 +153,18 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
         }
 
         case 'UPDATE_ORDER': {
-          const { tableId, items, isBar, customerName, waiterId } = item.payload;
+          const { tableId, items, isBar, customerName, waiterId, tableName } = item.payload;
           const sTableId = String(tableId);
 
           // Actualizar mesa
-          if (isBar) {
-            await supabase.from('tables').upsert({
-              id: sTableId,
-              name: `Barra ${sTableId.slice(-4)}`,
-              status: 'ocupada',
-              customer_name: customerName,
-              assigned_waiter_id: waiterId,
-              is_bar_account: true,
-            });
-          } else {
-            await supabase.from('tables').update({
-              status: 'ocupada',
-              customer_name: customerName,
-              assigned_waiter_id: waiterId,
-            }).eq('id', sTableId);
-          }
+          await supabase.from('tables').upsert({
+            id: sTableId,
+            name: tableName || (isBar ? 'Barra' : `Mesa ${sTableId}`),
+            status: 'ocupada',
+            customer_name: customerName,
+            assigned_waiter_id: waiterId,
+            is_bar_account: Boolean(isBar),
+          });
 
           // Reemplazar pedidos
           await supabase.from('orders').delete().eq('table_id', sTableId);
@@ -200,19 +183,10 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
         }
 
         case 'CANCEL_ORDER': {
-          const { tableId, isBar } = item.payload;
+          const { tableId } = item.payload;
           const sTableId = String(tableId);
           await supabase.from('orders').delete().eq('table_id', sTableId);
-          if (isBar) {
-            await supabase.from('tables').delete().eq('id', sTableId);
-          } else {
-            await supabase.from('tables').update({
-              status: 'libre',
-              customer_name: null,
-              assigned_waiter_id: null,
-              created_at: null,
-            }).eq('id', sTableId);
-          }
+          await supabase.from('tables').delete().eq('id', sTableId);
           success = true;
           break;
         }

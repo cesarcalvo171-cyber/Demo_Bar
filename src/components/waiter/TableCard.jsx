@@ -1,7 +1,5 @@
 import React from 'react';
 import { Users, Clock, ShoppingBag, Trash2 } from 'lucide-react';
-import { MdOutlineEventAvailable } from "react-icons/md";
-import { MdEventBusy } from "react-icons/md";
 import { MdTableRestaurant, MdLocalBar } from "react-icons/md";
 import { IoMdTime } from "react-icons/io";
 import { useBar } from '../../context/BarContext';
@@ -22,96 +20,95 @@ export const TableCard = ({ table, onClick }) => {
   const { deleteTable } = useBar();
   const isOccupied = table.status === 'ocupada';
   const isPendingPayment = table.status === 'pendiente_pago';
-  const isFree = table.status === 'libre';
   const isBar = table.isBar;
-  const isExtra = !table.isBar && parseInt(table.id, 10) > 10;
 
   const totalItems = table.items.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = table.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  // Colores planos sólidos claros y entendibles
-  let bgColor = 'bg-green-100 hover:bg-slate-100 border-green-400 text-white';
-  let badgeicon = isBar ? <MdLocalBar className="w-12 h-12" /> : <TableIcon className="w-12 h-12 font-extrabold stroke-current stroke-[1px]" />;  // Icono para libre
-  let badgeText = 'Disponible'; // Texto para libre
+  let bgColor = 'bg-white hover:bg-slate-50 border-slate-700 text-slate-900';
+  let badgeicon = isBar ? <MdLocalBar className="w-10 h-10" /> : <TableIcon className="w-10 h-10 font-extrabold stroke-current stroke-[1px]" />;
+  let badgeText = isBar ? 'Barra' : 'Ocupada';
   
   if (isOccupied) {
-    bgColor = isBar ? 'bg-blue-200 hover:bg-blue-300 border-blue-600 text-black' : 'bg-red-200 hover:bg-red-100/50 border-red-600 text-black';
-    badgeicon = isBar ? <MdLocalBar className="w-12 h-12" /> : <TableIcon className="w-12 h-12 font-extrabold stroke-current stroke-[1px]" />; // Icono para ocupada
+    bgColor = isBar ? 'bg-blue-950/40 hover:bg-blue-900/40 border-blue-600/80 text-white' : 'bg-red-950/40 hover:bg-red-900/40 border-red-600/80 text-white';
+    badgeicon = isBar ? <MdLocalBar className="w-10 h-10 text-blue-400" /> : <TableIcon className="w-10 h-10 text-red-400 font-extrabold stroke-current stroke-[1px]" />;
     badgeText = isBar ? 'Barra' : 'Ocupada';
-    
   } else if (isPendingPayment) {
-    bgColor = isBar ? 'bg-indigo-200 hover:bg-indigo-300 border-indigo-600 text-slate-900' : 'bg-amber-100 hover:bg-amber-600 border-amber-600 text-slate-900';
+    bgColor = isBar ? 'bg-indigo-950/40 hover:bg-indigo-900/40 border-indigo-500 text-white' : 'bg-amber-950/40 hover:bg-amber-900/40 border-amber-500 text-white';
     badgeText = 'En Caja';
-  
-    badgeicon=<IoMdTime className="w-8 h-8"/>
+    badgeicon = <IoMdTime className="w-8 h-8 text-amber-400"/>;
   }
 
   return (
     <div
       onClick={onClick}
-      className={`p-5 rounded-sm border-t-4 shadow-sm transition-all transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between h-80 relative ${bgColor}`}
+      className={`p-5 rounded-2xl border-2 shadow-lg transition-all transform hover:-translate-y-1 cursor-pointer flex flex-col justify-between min-h-[300px] relative backdrop-blur-sm ${bgColor}`}
     >
-      <div className="flex flex-2 justify-between items-center w-full relative">
-        <div className="flex items-center justify-center gap-2 flex-1">
-          {isBar && <MdLocalBar className="text-blue-700 w-6 h-6" />}
-          <span className="font-inter italic text-lg font-bold tracking-tight text-black">{table.name}</span>
+      <div className="flex justify-between items-center w-full relative">
+        <div className="flex items-center gap-2 flex-1">
+          {isBar ? (
+            <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30">
+              <MdLocalBar className="w-5 h-5" />
+            </div>
+          ) : (
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+              <MdTableRestaurant className="w-5 h-5" />
+            </div>
+          )}
+          <span className="font-sans text-lg font-black tracking-tight text-white">{table.name}</span>
         </div>
-        {isExtra && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm(`¿Deseas eliminar permanentemente la ${table.name}?`)) {
-                deleteTable(table.id);
-              }
-            }}
-            title="Eliminar mesa extra"
-            className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-500/20 transition-all cursor-pointer absolute right-0 top-0 active:scale-90"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`¿Deseas cerrar o eliminar la ${table.name}?`)) {
+              deleteTable(table.id);
+            }
+          }}
+          title="Eliminar o cancelar mesa"
+          className="text-slate-400 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-all cursor-pointer active:scale-90"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="mt-4 mb-4 flex flex-col gap-2">
-         <span className={`text-[18px]  font-serif px-4 py-2 rounded-full uppercase tracking-wider mx-auto flex items-center justify-center ${
-          isFree ? 'bg-green-200 text-green-800' : isOccupied ? (isBar ? 'bg-blue-700 text-white' : 'bg-red-700 text-white') : 'bg-amber-700 text-white '
-        }`}>
-          {badgeicon} 
-         
-        </span>
-        <span className='font-serif italic text-[18px] mx-auto text-black'>
+      <div className="my-3 flex flex-col items-center gap-1.5">
+        <div className="p-3 rounded-full bg-slate-900/70 border border-slate-700/60 shadow-inner flex items-center justify-center">
+          {badgeicon}
+        </div>
+        <span className="font-bold text-xs uppercase tracking-wider text-slate-300">
           {badgeText}
         </span>
-        {isFree ? (
-          
-          <div className="text-center py-3 opacity-90">
-            <hr  className=' text-green-400'/>
-            <p className="text-[14px] opacity-75 mt-0.5 font-serif italic text-black">Haga clic para abrir pedido</p>
-          </div>
-        ) : (
-          <div className="space-y-1 text-xs">
-            {table.assignedWaiterName && (
-              <div className="flex items-center gap-1 font-bold text-[11px] bg-slate-900 text-yellow-400 px-2 py-0.5 rounded w-fit">
-                <span>👤 {table.assignedWaiterName}</span>
-              </div>
-            )}
-            {table.customerName && (
-              <div className="flex items-center gap-1 font-semibold">
-                <Users className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{table.customerName}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1 opacity-90">
-              <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-              <span>{totalItems} producto(s)</span>
-            </div>
-            <div className="flex items-center justify-between border-t border-black/10 pt-1.5 mt-1">
-              <span className="font-semibold opacity-90">Total:</span>
-              <span className="font-extrabold text-base">C${totalAmount.toFixed(2)}</span>
-            </div>
+      </div>
+
+      <div className="space-y-2 text-xs bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+        {table.assignedWaiterName && (
+          <div className="flex items-center gap-1 font-bold text-[11px] text-amber-300">
+            <span>👤 {table.assignedWaiterName}</span>
           </div>
         )}
+        {table.customerName ? (
+          <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+            <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="truncate">{table.customerName}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-slate-500 italic text-[11px]">
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span>Sin nombre asignado</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between opacity-90 text-slate-300">
+          <span className="flex items-center gap-1">
+            <ShoppingBag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>{totalItems} producto(s)</span>
+          </span>
+          <span className="font-extrabold text-base text-emerald-400">
+            C${totalAmount.toFixed(2)}
+          </span>
+        </div>
       </div>
     </div>
   );
 };
+

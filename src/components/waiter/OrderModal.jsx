@@ -31,20 +31,21 @@ export const OrderModal = ({ table, onClose }) => {
   // Estado local atómico e independiente para items de la mesa
   const [localItems, setLocalItems] = useState(table.items || []);
   const [localUnprinted, setLocalUnprinted] = useState(table.unprintedItems || []);
+  const [tableName, setTableName] = useState(table.name || "");
   const [customerName, setCustomerName] = useState(table.customerName || "");
   const [showPreview, setShowPreview] = useState(false);
   const [showComanda, setShowComanda] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [search, SetSearch] = useState("");
   const [mobileView, setMobileView] = useState("catalog"); // "catalog" | "order"
-  const isExtra = !table.isBar && parseInt(table.id, 10) > 10;
 
   // Sincronizar estado local al cambiar de mesa seleccionada
   useEffect(() => {
     setLocalItems(table.items || []);
     setLocalUnprinted(table.unprintedItems || []);
+    setTableName(table.name || "");
     setCustomerName(table.customerName || "");
-  }, [table.id]);
+  }, [table.id, table.name]);
 
   // Ambos roles tienen acceso total según lo solicitado por el usuario
   const isOwnerOrAdmin = true;
@@ -88,7 +89,7 @@ export const OrderModal = ({ table, onClose }) => {
 
     setLocalItems(nextItems);
     setLocalUnprinted(nextUnprinted);
-    updateTableOrder(table.id, nextItems, customerName, nextUnprinted);
+    updateTableOrder(table.id, nextItems, customerName, nextUnprinted, tableName);
   };
 
   // Reducir o eliminar cantidad de forma atómica
@@ -113,7 +114,7 @@ export const OrderModal = ({ table, onClose }) => {
 
     setLocalItems(nextItems);
     setLocalUnprinted(nextUnprinted);
-    updateTableOrder(table.id, nextItems, customerName, nextUnprinted);
+    updateTableOrder(table.id, nextItems, customerName, nextUnprinted, tableName);
   };
 
   const calculateTotal = () => {
@@ -125,7 +126,7 @@ export const OrderModal = ({ table, onClose }) => {
 
   // Guardar cambios sin cerrar mesa (solo pedido activo)
   const handleSaveOrder = () => {
-    updateTableOrder(table.id, localItems, customerName, localUnprinted);
+    updateTableOrder(table.id, localItems, customerName, localUnprinted, tableName);
     onClose();
   };
 
@@ -136,7 +137,7 @@ export const OrderModal = ({ table, onClose }) => {
       setErrorMsg("Debes ingresar Referencia/Cliente en la parte superior.");
       return;
     }
-    updateTableOrder(table.id, localItems, customerName, localUnprinted);
+    updateTableOrder(table.id, localItems, customerName, localUnprinted, tableName);
     sendOrderToCashier(table.id, customerName);
     onClose();
   };
@@ -154,7 +155,7 @@ export const OrderModal = ({ table, onClose }) => {
   };
 
   const handleClearTable = () => {
-    if (confirm(`¿Estás seguro de cancelar el pedido de la ${table.name}?`)) {
+    if (confirm(`¿Estás seguro de cancelar el pedido de la ${tableName || table.name}?`)) {
       setLocalItems([]);
       setLocalUnprinted([]);
       cancelTableOrder(table.id);
@@ -199,7 +200,7 @@ export const OrderModal = ({ table, onClose }) => {
             <div className="flex justify-between items-start pb-2.5 border-b border-slate-700/50 mb-2.5">
               <div>
                 <h3 className="font-bold text-slate-100 text-base m-0 mb-1">
-                  {table.name}
+                  {tableName || table.name}
                 </h3>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 m-0 flex-wrap">
                   Estado:
@@ -214,19 +215,17 @@ export const OrderModal = ({ table, onClose }) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {isExtra && (
-                <button
-                  onClick={() => {
-                    if (confirm(`¿Deseas eliminar permanentemente la ${table.name}?`)) {
-                      deleteTable(table.id);
-                      onClose();
-                    }
-                  }}
-                  className="text-xs text-red-400 hover:text-red-300 font-bold cursor-pointer py-1 px-2 rounded hover:bg-red-500/10 transition-colors"
-                >
-                  Eliminar Mesa
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  if (confirm(`¿Deseas cerrar o eliminar la ${tableName || table.name}?`)) {
+                    deleteTable(table.id);
+                    onClose();
+                  }
+                }}
+                className="text-xs text-red-400 hover:text-red-300 font-bold cursor-pointer py-1 px-2 rounded hover:bg-red-500/10 transition-colors"
+              >
+                Cerrar Mesa
+              </button>
               {localItems.length > 0 && (
                 <button
                   onClick={handleClearTable}
@@ -240,14 +239,17 @@ export const OrderModal = ({ table, onClose }) => {
 
             <div className="mb-2.5">
               <div className="relative">
-s               <label htmlFor="" className="text-red-600 text-sm">Ingresa Nombre del Cliente *</label>
+                <label htmlFor="customer-input" className="block text-slate-400 text-xs font-semibold mb-1">
+                  Nombre del Cliente / Referencia
+                </label>
                 <input
+                  id="customer-input"
                   type="text"
-                  placeholder="Referencia o Cliente (Ej. Juan Pérez)"
+                  placeholder="Ej. Juan Pérez"
                   value={customerName}
-                  onBlur={() => updateTableOrder(table.id, localItems, customerName, localUnprinted)}
+                  onBlur={() => updateTableOrder(table.id, localItems, customerName, localUnprinted, tableName)}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full pl-8 pr-3 py-3 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors"
+                  className="w-full px-3 py-2.5 bg-[#15171e] border border-slate-700 rounded text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-400/50 transition-colors"
                 />
               </div>
             </div>

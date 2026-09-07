@@ -3,13 +3,16 @@ import { useBar } from '../../context/BarContext';
 import { OrderCard } from './OrderCard';
 import { PaymentModal } from './PaymentModal';
 import { Receipt, PlusCircle } from 'lucide-react';
+import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
 import { OrderModal } from '../waiter/OrderModal';
+import { OpenTableModal } from '../common/OpenTableModal';
 import { Modal } from '../common/Modal';
 
 export const ActiveOrders = () => {
-  const { tables, addBarAccount ,addNewTable } = useBar();
+  const { tables, addBarAccount } = useBar();
   const [selectedTable, setSelectedTable] = useState(null);
   const [orderTableToEditId, setOrderTableToEditId] = useState(null);
+  const [isOpenTableModalOpen, setIsOpenTableModalOpen] = useState(false);
 
   // Consideramos 'ocupada' o 'pendiente_pago' como activas
   const activeTables = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago');
@@ -38,31 +41,15 @@ export const ActiveOrders = () => {
             onClick={handleCreateBarAccount}
             className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
           >
-            <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            <MdLocalBar className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Despachar Barra</span>
           </button>
 
           <button
-            onClick={async () => { 
-              // 1. Buscar la primera mesa base (Mesa 1 a 10) que esté libre
-              const firstFreeBaseTable = tables.find(
-                (t) => !t.isBar && parseInt(t.id, 10) <= 10 && t.status === "libre"
-              );
-
-              if (firstFreeBaseTable) {
-                // Si la Mesa 1 (o 2, 3...) está libre, la abre directamente en Caja
-                setOrderTableToEditId(firstFreeBaseTable.id);
-              } else {
-                // Si las 10 mesas fijas están todas ocupadas, crea la siguiente (Mesa 11, 12...)
-                const newId = await addNewTable();
-                if (newId) {
-                  setOrderTableToEditId(newId);
-                }
-              }
-            }}
-            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shrink-0 text-xs sm:text-sm"
+            onClick={() => setIsOpenTableModalOpen(true)}
+            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shrink-0 text-xs sm:text-sm shadow-emerald-600/20"
           >
-            <span className="text-base sm:text-lg leading-none font-black">+</span>
+            <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Despachar Mesa</span>
           </button>
         </div>
@@ -72,7 +59,7 @@ export const ActiveOrders = () => {
         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 min-h-[40vh] p-6 text-center">
           <Receipt className="w-12 h-12 sm:w-16 sm:h-16 opacity-30 mb-3" />
           <h3 className="text-base sm:text-lg font-bold text-slate-500 m-0">No hay pedidos activos</h3>
-          <p className="text-xs sm:text-sm mt-1 max-w-sm">Las mesas que los meseros vayan abriendo aparecerán aquí automáticamente.</p>
+          <p className="text-xs sm:text-sm mt-1 max-w-sm">Las mesas que los meseros o cajeros vayan abriendo aparecerán aquí en tiempo real.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6 items-start pb-10">
@@ -86,6 +73,13 @@ export const ActiveOrders = () => {
           ))}
         </div>
       )}
+
+      {/* Modal para abrir nueva mesa */}
+      <OpenTableModal
+        isOpen={isOpenTableModalOpen}
+        onClose={() => setIsOpenTableModalOpen(false)}
+        onTableCreated={(newId) => setOrderTableToEditId(newId)}
+      />
 
       {selectedTable && (
         <PaymentModal
@@ -112,3 +106,4 @@ export const ActiveOrders = () => {
     </div>
   );
 };
+

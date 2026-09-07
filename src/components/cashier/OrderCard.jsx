@@ -95,7 +95,7 @@ export const OrderCard = ({ table, onCheckout, onEdit }) => {
               className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl flex justify-center items-center gap-2 transition-colors cursor-pointer shadow-sm shadow-emerald-600/20"
             >
               <DollarSign className="w-5 h-5" />
-              Cobrar Mesa
+              Cobrar 
             </button>
           )}
         </div>
