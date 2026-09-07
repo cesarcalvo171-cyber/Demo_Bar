@@ -72,14 +72,18 @@ export const PaymentModal = ({ table, onClose }) => {
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
-        {/* Cabecera */}
-        <div className="bg-slate-900 p-4 sm:p-5 flex justify-between items-center shrink-0">
+        {/* Cabecera Azul */}
+        <div className="bg-blue-600 p-4 sm:p-5 flex justify-between items-center shrink-0 shadow-sm">
           <div>
             <h2 className="text-lg sm:text-xl font-black text-white m-0">Cobrar {table.name}</h2>
-            {table.customerName && <p className="text-xs sm:text-sm text-slate-300 font-semibold m-0">{table.customerName}</p>}
+            {table.customerName && <p className="text-xs sm:text-sm text-blue-100 font-semibold m-0">{table.customerName}</p>}
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer p-1">
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
+          <button 
+            onClick={onClose} 
+            title="Cerrar"
+            className="p-1.5 rounded-xl bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-all cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center"
+          >
+            <X className="w-7 h-7 stroke-[3px]" />
           </button>
         </div>
 

@@ -62,9 +62,9 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
       onClick={(e) => e.stopPropagation()}
     >
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
-        <div className="bg-slate-900 px-5 py-4 flex items-center justify-between">
+        <div className="bg-blue-600 px-5 py-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2">
-            <Printer className="w-4 h-4 text-yellow-400" />
+            <Printer className="w-5 h-5 text-white" />
             <span className="text-white font-bold text-sm">
               {isFinal ? "Factura del Cliente" : "Pre-Recibo del Cliente"}
             </span>
@@ -78,9 +78,10 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             <button
               type="button"
               onClick={handleCloseBtn}
-              className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer ml-1"
+              title="Cerrar"
+              className="p-1.5 rounded-xl bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-all cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ml-1"
             >
-              <X className="w-4 h-4" />
+              <X className="w-7 h-7 stroke-[3px]" />
             </button>
           </div>
         </div>

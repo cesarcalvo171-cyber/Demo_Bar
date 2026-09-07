@@ -12,24 +12,28 @@ export const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in font-sans">
-      <div className={`bg-slate-950 rounded-2xl shadow-2xl w-full ${maxWidth} ${height} flex flex-col min-h-0 overflow-hidden border border-slate-700/80 transition-all`}>
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-800 bg-slate-950 shrink-0">
-          <h2 className="text-base sm:text-lg font-black font-inter text-white m-0 tracking-tight">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in font-sans">
+      <div className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} ${height} flex flex-col min-h-0 overflow-hidden border border-slate-200 transition-all`}>
+        {/* Modal Header Azul */}
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 bg-blue-600 border-b border-blue-500 shrink-0 shadow-sm">
+          <h2 className="text-base sm:text-xl font-black text-white m-0 tracking-tight flex items-center gap-2">
+            {title}
+          </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Cerrar"
+            className="p-1.5 rounded-xl bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-all cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ml-2"
           >
-            <X className="w-5 h-5" />
+            <X className="w-7 h-7 stroke-[3px]" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col min-h-0 bg-slate-950">
+        {/* Modal Body Blanco */}
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col min-h-0 bg-white">
           {children}
         </div>
       </div>
     </div>
   );
 };
+

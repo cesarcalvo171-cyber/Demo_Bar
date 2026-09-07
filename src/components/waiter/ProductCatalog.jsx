@@ -64,18 +64,18 @@ export const ProductCatalog = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-[#1a1d27]">
+    <div className="flex flex-col flex-1 min-h-0 bg-white">
       {/* Botones de Categorías Dinámicas */}
       {search.trim() === "" && (
-        <div className="flex flex-wrap gap-2.5 mb-5 pb-4 border-b border-slate-700/50 pt-2">
+        <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b border-slate-200 pt-1">
           {activeCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-xs md:text-sm transition-colors cursor-pointer border ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full font-bold text-xs md:text-sm transition-all cursor-pointer border ${
                 selectedCategory === cat.id
-                  ? "bg-orange-300 text-[#1a1d24] border-orange-300 shadow-sm"
-                  : "bg-[#222533] text-slate-300 border-slate-700 hover:bg-slate-700"
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 hover:text-slate-900"
               }`}
             >
               {getCategoryIcon(cat.icon)}
@@ -87,7 +87,7 @@ export const ProductCatalog = ({
 
       {/* Lista de Productos de la Categoría */}
       <div 
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-4 p-4 lg:p-0"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-4 p-2 lg:p-0"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {filteredProducts.map((product) => {
@@ -99,58 +99,60 @@ export const ProductCatalog = ({
             <div
               key={product.id}
               onClick={() => !isOutOfStock && onSelectProduct(product)}
-              className={`rounded-xl border text-left transition-all flex flex-col overflow-hidden relative h-full min-h-[260px] ${
+              className={`rounded-2xl border text-left transition-all flex flex-col overflow-hidden relative h-full min-h-[250px] shadow-xs hover:shadow-md ${
                 isOutOfStock
-                  ? "bg-red-900/50 border-red-900/50 opacity-60 cursor-not-allowed"
-                  : "bg-[#191c25] border-slate-700/50 hover:border-slate-600 cursor-pointer shadow-sm"
+                  ? "bg-red-50 border-red-200 opacity-60 cursor-not-allowed"
+                  : "bg-white border-slate-200 hover:border-blue-400 cursor-pointer"
               }`}
             >
               {/* Imagen y Precio */}
-              <div className="relative h-[130px] md:h-[160px] w-full shrink-0 bg-[#222533]">
+              <div className="relative h-[130px] md:h-[150px] w-full shrink-0 bg-slate-100 flex items-center justify-center overflow-hidden">
                 {product.image && (
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform hover:scale-105 duration-200"
                   />
                 )}
-                <div className="absolute top-2 right-2 bg-[#1a1d27]/80 backdrop-blur-md text-orange-200 px-2 py-0.5 rounded text-xs font-bold tracking-wide border border-slate-600/50">
+                <div className="absolute top-2 right-2 bg-blue-600 text-white px-2.5 py-0.5 rounded-md text-xs font-black tracking-wide shadow-sm">
                   C${product.price.toFixed(2)}
                 </div>
               </div>
 
               {/* Información y Acción */}
-              <div className="p-3.5 flex flex-col flex-1 justify-between">
+              <div className="p-3 flex flex-col flex-1 justify-between bg-white">
                 <div>
-                  <h4 className="font-semibold text-slate-100 text-[13px] leading-tight line-clamp-2">
+                  <h4 className="font-bold text-slate-900 text-xs sm:text-sm leading-tight line-clamp-2">
                     {product.name}
                   </h4>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                     {hasStock ? (
                       <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
                           product.stock < 10
-                            ? "bg-orange-900/40 text-orange-400"
-                            : "bg-slate-700 text-slate-300"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-slate-100 text-slate-600 border border-slate-200"
                         }`}
                       >
                         Stock: {product.stock}
                       </span>
                     ) : (
-                      <span className="text-[9px] px-2 py-0.5 rounded-sm font-bold bg-[#183a31] text-[#4ade80] border border-[#166534]">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Preparado
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-3">
+                <div className="mt-2.5">
                   <button
                     disabled={isOutOfStock}
-                    className={`w-full text-xs font-semibold px-2 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors ${
+                    className={`w-full text-xs font-bold px-2 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs ${
                       isOutOfStock
-                        ? "bg-slate-800 text-slate-500"
-                        : "bg-[#2a2e40] text-slate-200 hover:bg-[#34394f]"
+                        ? "bg-slate-200 text-slate-400"
+                        : qty > 0
+                        ? "bg-blue-700 text-white"
+                        : "bg-blue-600 hover:bg-blue-500 text-white active:scale-95"
                     }`}
                   >
                     {qty > 0 ? (

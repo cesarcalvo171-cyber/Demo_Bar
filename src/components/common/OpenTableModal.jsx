@@ -71,51 +71,52 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Cabecera */}
-        <div className="bg-slate-800/80 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
-              <MdTableRestaurant className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150 font-sans">
+      <div className="bg-white border border-blue-200 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        {/* Cabecera Azul */}
+        <div className="bg-blue-600 px-6 py-4 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 text-white rounded-xl">
+              <MdTableRestaurant className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white m-0">Abrir Nueva Mesa</h3>
-              <p className="text-xs text-slate-400 m-0">Asigna el número de mesa y cliente</p>
+              <h3 className="text-lg font-bold text-white m-0">Abrir Nueva Mesa</h3>
+              <p className="text-xs text-blue-100 m-0">Asigna el número de mesa y cliente</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+            title="Cerrar"
+            className="p-1.5 rounded-xl bg-white/90 hover:bg-white text-red-600 hover:text-red-700 transition-all cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center"
           >
-            <X className="w-5 h-5" />
+            <X className="w-7 h-7 stroke-[3px]" />
           </button>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Formulario Fondo Blanco */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 bg-white">
           {errorMsg && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl text-xs font-semibold">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold">
               {errorMsg}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
-              Número de Mesa <span className="text-emerald-400">*</span>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+              Número de Mesa <span className="text-blue-600">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600 font-black text-base">
                 #
               </span>
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Ej. 1, 5, 12, Terraza 1..."
+                placeholder="Ej. 1, 5, 12"
                 value={tableNumber}
                 onChange={(e) => setTableNumber(e.target.value)}
-                className="w-full pl-9 pr-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm font-bold focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full pl-9 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-sm font-bold focus:outline-none focus:border-blue-600 focus:bg-white transition-all shadow-xs"
                 required
               />
             </div>
@@ -125,7 +126,7 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Nombre del Cliente / Referencia
             </label>
             <div className="relative">
@@ -135,7 +136,7 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
                 placeholder="Ej. Carlos Mendoza"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-blue-600 focus:bg-white transition-all shadow-xs"
               />
             </div>
           </div>
@@ -145,16 +146,16 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors cursor-pointer text-sm"
+              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer text-sm"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !tableNumber.trim()}
-              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+              className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-bold rounded-xl transition-all cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25"
             >
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-5 h-5" />
               <span>{isSubmitting ? "Abriendo..." : "Abrir Mesa"}</span>
             </button>
           </div>
