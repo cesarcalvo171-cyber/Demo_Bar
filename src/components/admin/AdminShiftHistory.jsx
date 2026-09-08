@@ -199,23 +199,36 @@ export const AdminShiftHistory = () => {
           stockDisplay = `${matchedProd.stock} unid.`;
         }
 
-        // Producto
+        // Producto: calcular total vendido, total costo y total ganado
+        let unitCost = Number(item.cost || item.product?.cost || 0);
+        if (!unitCost && matchedProd && matchedProd.cost) {
+          unitCost = Number(matchedProd.cost);
+        }
+        const totalCostItem = unitCost * qty;
+        const totalProfitItem = total - totalCostItem;
+
         if (!prodMap[displayName]) {
           prodMap[displayName] = {
             name: displayName,
             category: catName,
             quantitySold: 0,
+            totalSold: 0,
+            totalCost: 0,
+            totalProfit: 0,
             currentStock: stockDisplay,
           };
         }
         prodMap[displayName].quantitySold += physicalUnits;
+        prodMap[displayName].totalSold += total;
+        prodMap[displayName].totalCost += totalCostItem;
+        prodMap[displayName].totalProfit += totalProfitItem;
         prodMap[displayName].currentStock = stockDisplay;
       });
     });
 
     return {
       categoryList: Object.values(catMap).sort((a, b) => b.totalAmount - a.totalAmount),
-      productList: Object.values(prodMap).sort((a, b) => b.quantitySold - a.quantitySold),
+      productList: Object.values(prodMap).sort((a, b) => b.totalSold - a.totalSold),
     };
   };
 
@@ -346,45 +359,78 @@ export const AdminShiftHistory = () => {
                             </button>
                           </div>
 
-                          {/* Ventas por Categorías */}
+                          {/* Ventas y Totales por Producto */}
                           <div>
                             <h5 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <Layers className="w-4 h-4 text-slate-400" />
-                              Ventas por Categoría ({categoryList.length})
+                              <Package className="w-4 h-4 text-slate-400" />
+                              Totales por Producto Vendido ({productList.length})
                             </h5>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                              {categoryList.map(cat => (
-                                <div key={cat.name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">{cat.name}</span>
-                                  <p className="text-base font-black text-slate-900 m-0 mt-0.5">C${cat.totalAmount.toFixed(2)}</p>
-                                  <span className="text-xs font-bold text-emerald-600">{cat.totalUnits} unidades vendidas</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
+                              {productList.map(prod => (
+                                <div key={prod.name} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col justify-between shadow-xs hover:border-blue-300 transition-all">
+                                  <div>
+                                    <div className="flex justify-between items-start gap-2 mb-1">
+                                      <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-tight line-clamp-1">{prod.name}</span>
+                                      <span className="text-[10px] font-bold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded shrink-0">{prod.category}</span>
+                                    </div>
+                                    <div className="text-xs font-bold text-emerald-600 mb-2">
+                                      {prod.quantitySold} {prod.quantitySold === 1 ? 'unidad vendida' : 'unidades vendidas'}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="pt-2 border-t border-slate-200/80 grid grid-cols-3 gap-1 text-[11px]">
+                                    <div>
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Vendido</span>
+                                      <strong className="text-slate-900 font-extrabold">C${prod.totalSold.toFixed(2)}</strong>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase block">Costo</span>
+                                      <strong className="text-slate-600 font-bold">C${prod.totalCost.toFixed(2)}</strong>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-[9px] font-bold text-emerald-600 uppercase block">Ganancia</span>
+                                      <strong className="text-emerald-700 font-black">C${prod.totalProfit.toFixed(2)}</strong>
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
                             </div>
                           </div>
 
-                          {/* Auditoría de Inventario: Vendido vs Stock Restante */}
+                          {/* Auditoría de Inventario y Rentabilidad por Producto */}
                           <div>
                             <h5 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                              <Package className="w-4 h-4 text-slate-400" />
-                              Auditoría de Inventario (Vendido en Turno vs Stock Restante)
+                              <Layers className="w-4 h-4 text-slate-400" />
+                              Auditoría Detallada de Inventario y Ganancias
                             </h5>
                             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-                              <div className="max-h-60 overflow-y-auto">
+                              <div className="max-h-72 overflow-y-auto">
                                 <table className="w-full text-left text-xs">
                                   <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200">
                                     <tr>
                                       <th className="py-2.5 px-4">Producto</th>
-                                      <th className="py-2.5 px-4 text-center">Unid. Vendidas</th>
-                                      <th className="py-2.5 px-4 text-right">Stock Actual en Sistema</th>
+                                      <th className="py-2.5 px-3 text-center">Vendidos</th>
+                                      <th className="py-2.5 px-3 text-right">Total Vendido</th>
+                                      <th className="py-2.5 px-3 text-right">Costo Total</th>
+                                      <th className="py-2.5 px-3 text-right">Ganancia</th>
+                                      <th className="py-2.5 px-4 text-right">Stock Sistema</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
                                     {productList.map(prod => (
                                       <tr key={prod.name} className="hover:bg-slate-50/80">
                                         <td className="py-2.5 px-4 font-semibold text-slate-800">{prod.name}</td>
-                                        <td className="py-2.5 px-4 text-center font-bold text-emerald-600">
+                                        <td className="py-2.5 px-3 text-center font-bold text-blue-600">
                                           {prod.quantitySold}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right font-black text-slate-900">
+                                          C${prod.totalSold.toFixed(2)}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right font-medium text-slate-500">
+                                          C${prod.totalCost.toFixed(2)}
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right font-black text-emerald-600">
+                                          C${prod.totalProfit.toFixed(2)}
                                         </td>
                                         <td className="py-2.5 px-4 text-right font-bold text-slate-600">
                                           {prod.currentStock}

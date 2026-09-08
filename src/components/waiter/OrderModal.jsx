@@ -46,7 +46,7 @@ export const OrderModal = ({ table, onClose }) => {
     setLocalUnprinted(table.unprintedItems || []);
     setTableName(table.name || "");
     setCustomerName(table.customerName || "");
-  }, [table.id, table.name]);
+  }, [table.id]);
 
   // Ambos roles tienen acceso total según lo solicitado por el usuario
   const isOwnerOrAdmin = true;
@@ -168,7 +168,7 @@ export const OrderModal = ({ table, onClose }) => {
     <div className="flex flex-col h-full min-h-0 flex-1 relative overflow-hidden">
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 h-full overflow-hidden">
         {/* Columna Izquierda: Catálogo de Productos */}
-        <div className={`flex-1 lg:border-r border-slate-200 lg:pr-5 flex-col overflow-hidden min-h-0 pb-20 lg:pb-0 ${mobileView === 'catalog' ? 'flex' : 'hidden lg:flex'}`}>
+        <div className={`flex-1 lg:border-r border-slate-200 lg:pr-4 flex-col overflow-hidden min-h-0 pb-16 lg:pb-0 ${mobileView === 'catalog' ? 'flex' : 'hidden lg:flex'}`}>
           {errorMsg && (
             <div className="mb-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded flex items-center gap-2 shrink-0">
               <AlertCircle className="w-4 h-4 shrink-0" />

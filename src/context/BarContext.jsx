@@ -49,13 +49,18 @@ export const BarProvider = ({ children }) => {
   // Referencias para proteger el estado en tiempo real contra Race Conditions
   const pendingSyncTablesRef = useRef(new Map());
   const updateOrderDebounceTimersRef = useRef(new Map());
+  const inFlightWritesRef = useRef(new Map());
+  const latestPendingWriteRef = useRef(new Map());
+  const fetchSeqRef = useRef(0);
 
   const fetchData = async (silent = false) => {
+    const mySeq = ++fetchSeqRef.current;
     try {
       if (!silent) setIsLoading(true);
 
       // Fetch Global Configs
       const { data: settingsData } = await supabase.from("settings").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
       if (settingsData) {
         const rate = settingsData.find((s) => s.key === "exchange_rate");
         if (rate) setExchangeRate(rate.value);
@@ -63,6 +68,7 @@ export const BarProvider = ({ children }) => {
 
       // Fetch Categories from Supabase
       const { data: categoriesData } = await supabase.from("categories").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
       if (categoriesData && categoriesData.length > 0) {
         setCategories(
           categoriesData.map((c) => ({
@@ -75,6 +81,7 @@ export const BarProvider = ({ children }) => {
 
       // Fetch Users
       const { data: usersData } = await supabase.from("users").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
       if (usersData) {
         setUsers(
           usersData.map((u) => ({
@@ -93,6 +100,8 @@ export const BarProvider = ({ children }) => {
       const { data: bundlesData } = await supabase
         .from("product_bundles")
         .select("*");
+      if (mySeq !== fetchSeqRef.current) return;
+
       let mappedProducts = [];
       let newTables = [];
       let currentShiftInvoices = [];
@@ -126,6 +135,7 @@ export const BarProvider = ({ children }) => {
       const { data: tablesData, error: tablesError } = await supabase.from("tables").select("*");
       const { data: ordersData, error: ordersError } = await supabase.from("orders").select("*");
 
+      if (mySeq !== fetchSeqRef.current) return;
       if (tablesError) throw new Error("Fallo al obtener mesas: " + tablesError.message);
       if (ordersError) throw new Error("Fallo al obtener órdenes: " + ordersError.message);
 
@@ -139,58 +149,101 @@ export const BarProvider = ({ children }) => {
           const shieldDuration = isOffline ? 300000 : 2000;
 
           const pending = pendingSyncTablesRef.current.get(sId);
-          if (pending && Date.now() - pending.timestamp < shieldDuration) {
+          const hasPendingActive =
+            pending &&
+            !pending.isDeleted &&
+            Date.now() - pending.timestamp < shieldDuration;
+
+          const dbItemsMap = new Map();
+          const dbUnprintedMap = new Map();
+
+          tableOrders.forEach((order) => {
+            const rawProd =
+              productsData.find((p) => String(p.id) === String(order.product_id)) ||
+              (INITIAL_PRODUCTS || []).find(
+                (p) => String(p.id) === String(order.product_id),
+              );
+
+            const product = rawProd
+              ? {
+                  id: rawProd.id,
+                  name: rawProd.name,
+                  category: rawProd.category_id || rawProd.category,
+                  price: Number(rawProd.price),
+                  cost: Number(rawProd.cost || 0),
+                  stock: rawProd.stock !== null ? Number(rawProd.stock) : null,
+                  image:
+                    rawProd.icon_path && rawProd.icon_path.startsWith("http")
+                      ? rawProd.icon_path
+                      : imageDictionary[rawProd.name] || "",
+                }
+              : {
+                  id: order.product_id,
+                  name: "Producto",
+                  category: "general",
+                  price: 0,
+                  cost: 0,
+                  stock: null,
+                  image: "",
+                };
+
+            const sProdId = String(product.id);
+            const qty = Number(order.quantity) || 1;
+
+            if (dbItemsMap.has(sProdId)) {
+              dbItemsMap.get(sProdId).quantity += qty;
+            } else {
+              dbItemsMap.set(sProdId, { product, quantity: qty });
+            }
+
+            if (!order.is_printed) {
+              if (dbUnprintedMap.has(sProdId)) {
+                dbUnprintedMap.get(sProdId).quantity += qty;
+              } else {
+                dbUnprintedMap.set(sProdId, { product, quantity: qty });
+              }
+            }
+          });
+
+          if (!hasPendingActive) {
             return {
-              status: pending.status || (pending.items.length > 0 ? "ocupada" : "libre"),
-              customerName: pending.customerName || (dbTable?.customer_name || ""),
-              items: pending.items,
-              unprintedItems: pending.unprintedItems || [],
+              status: dbTable.status || "libre",
+              customerName: dbTable.customer_name || "",
+              items: Array.from(dbItemsMap.values()),
+              unprintedItems: Array.from(dbUnprintedMap.values()),
             };
           }
-          // Consolidar ítems duplicados por si existen filas repetidas en Supabase
-          const consolidatedItemsMap = new Map();
-          for (const o of tableOrders) {
-            const pid = String(o.product_id);
-            const pData = productsData.find((p) => String(p.id) === pid);
-            if (!pData) continue;
 
-            if (consolidatedItemsMap.has(pid)) {
-              const existing = consolidatedItemsMap.get(pid);
-              existing.quantity += o.quantity;
+          // Unir items locales pendientes con los de BD sin perder nada
+          const consolidatedItemsMap = new Map(dbItemsMap);
+          (pending.items || []).forEach((pItem) => {
+            const pProdId = String(pItem.product.id);
+            if (!consolidatedItemsMap.has(pProdId)) {
+              consolidatedItemsMap.set(pProdId, pItem);
             } else {
-              consolidatedItemsMap.set(pid, {
-                product: {
-                  id: pData.id,
-                  name: pData.name,
-                  price: Number(pData.price || 0),
-                  cost: Number(pData.cost || 0),
-                  category: pData.category_id,
-                },
-                quantity: o.quantity,
-              });
+              consolidatedItemsMap.get(pProdId).quantity = Math.max(
+                consolidatedItemsMap.get(pProdId).quantity,
+                pItem.quantity,
+              );
             }
-          }
+          });
 
-          const consolidatedUnprintedMap = new Map();
-          for (const o of tableOrders.filter((o) => !o.is_printed)) {
-            const pid = String(o.product_id);
-            const pData = productsData.find((p) => String(p.id) === pid);
-            if (!pData) continue;
-
-            if (consolidatedUnprintedMap.has(pid)) {
-              const existing = consolidatedUnprintedMap.get(pid);
-              existing.quantity += o.quantity;
+          const consolidatedUnprintedMap = new Map(dbUnprintedMap);
+          (pending.unprintedItems || []).forEach((pUnprinted) => {
+            const pProdId = String(pUnprinted.product.id);
+            if (!consolidatedUnprintedMap.has(pProdId)) {
+              consolidatedUnprintedMap.set(pProdId, pUnprinted);
             } else {
-              consolidatedUnprintedMap.set(pid, {
-                product: { id: pData.id, name: pData.name },
-                quantity: o.quantity,
-              });
+              consolidatedUnprintedMap.get(pProdId).quantity = Math.max(
+                consolidatedUnprintedMap.get(pProdId).quantity,
+                pUnprinted.quantity,
+              );
             }
-          }
+          });
 
           return {
-            status: dbTable?.status || "libre",
-            customerName: dbTable?.customer_name || "",
+            status: pending.status || dbTable.status || "ocupada",
+            customerName: pending.customerName !== undefined ? pending.customerName : dbTable.customer_name || "",
             items: Array.from(consolidatedItemsMap.values()),
             unprintedItems: Array.from(consolidatedUnprintedMap.values()),
           };
@@ -256,77 +309,19 @@ export const BarProvider = ({ children }) => {
           return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
         });
 
-        setTables(newTables);
+        if (mySeq === fetchSeqRef.current) {
+          setTables(newTables);
+        }
       }
 
-      // Fetch Shifts & Financials
-      const { data: shiftsData, error: shiftsError } = await supabase
-        .from("shifts")
-        .select("*")
-        .order("opened_at", { ascending: false });
+      // Fetch Invoices
+      const { data: invData } = await supabase.from("invoices").select("*");
+      const { data: invItemsData } = await supabase.from("invoice_items").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
 
-      if (shiftsError) {
-        console.error("Error al obtener turnos de Supabase:", shiftsError);
-        throw new Error("Fallo al obtener turnos: " + shiftsError.message);
-      }
-
-      const activeShift = (shiftsData || []).find((s) => !s.closed_at);
-      const closedShifts = (shiftsData || []).filter((s) => s.closed_at);
-      const closedShiftIds = new Set(closedShifts.map((s) => s.id));
-
-      if (activeShift) {
-        setCurrentShiftId(activeShift.id);
-        setShiftStartTime(activeShift.opened_at);
-      }
-
-      // Fetch all invoices
-      const { data: invData, error: invError } = await supabase.from("invoices").select("*");
-      const { data: invItemsData } = await supabase
-        .from("invoice_items")
-        .select("*");
-
-      if (invError) {
-        console.error("Error al obtener facturas de Supabase:", invError);
-        throw new Error("Fallo al obtener facturas: " + invError.message);
-      }
-
-      const allMappedInvoices = (invData || []).map((inv) => {
-        const items = (invItemsData || [])
-          .filter((i) => i.invoice_id === inv.id)
-          .map((i) => {
-            const cleanItemName = (i.product_name || "").trim().toLowerCase();
-            const pMatch = (productsData || []).find(
-              (p) => p.name?.trim().toLowerCase() === cleanItemName
-            ) || (INITIAL_PRODUCTS || []).find(
-              (p) => p.name?.trim().toLowerCase() === cleanItemName
-            );
-
-            let resolvedCat = pMatch?.category;
-            if (!resolvedCat || resolvedCat === "General" || resolvedCat === "general") {
-              if (cleanItemName.includes("toña") || cleanItemName.includes("clasica") || cleanItemName.includes("spark") || cleanItemName.includes("heineken") || cleanItemName.includes("miller") || cleanItemName.includes("sol") || cleanItemName.includes("bambu") || cleanItemName.includes("smirnof")) {
-                resolvedCat = "cervezas";
-              } else if (cleanItemName.includes("nachos") || cleanItemName.includes("alitas") || cleanItemName.includes("salchipapa") || cleanItemName.includes("hamburguesa") || cleanItemName.includes("hot dog") || cleanItemName.includes("consume") || cleanItemName.includes("toston")) {
-                resolvedCat = "comida";
-              } else if (cleanItemName.includes("reserva") || cleanItemName.includes("lite") || cleanItemName.includes("plata") || cleanItemName.includes("ron") || cleanItemName.includes("licor")) {
-                resolvedCat = "licores";
-              } else if (cleanItemName.includes("chubby") || cleanItemName.includes("gatorade") || cleanItemName.includes("power") || cleanItemName.includes("agua") || cleanItemName.includes("pepsi") || cleanItemName.includes("lipton")) {
-                resolvedCat = "Bebida sin alcohol";
-              } else if (cleanItemName.includes("chiveria") || cleanItemName.includes("snack")) {
-                resolvedCat = "chiveria";
-              } else {
-                resolvedCat = "General";
-              }
-            }
-
-            return {
-              name: i.product_name,
-              quantity: i.quantity,
-              price: Number(i.price_at_sale),
-              cost: Number(i.cost_at_sale),
-              category: resolvedCat,
-            };
-          });
-        return {
+      let allInvoices = [];
+      if (invData) {
+        allInvoices = invData.map((inv) => ({
           id: inv.id,
           shiftId: inv.shift_id,
           tableName: inv.table_name,
@@ -340,131 +335,147 @@ export const BarProvider = ({ children }) => {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          items,
-        };
-      });
+          items:
+            invItemsData
+              ?.filter((it) => it.invoice_id === inv.id)
+              .map((it) => ({
+                name: it.product_name,
+                quantity: it.quantity,
+                price: Number(it.price_at_sale),
+                cost: Number(it.cost_at_sale || 0),
+              })) || [],
+        }));
+      }
 
-      // BLINDAJE DE CORTE Z: Incluye facturas del turno activo + cualquier factura huérfana/no cerrada
-      currentShiftInvoices = allMappedInvoices.filter((i) => {
-        if (activeShift && i.shiftId === activeShift.id) return true;
-        // Si no tiene shiftId o su shiftId no está entre los turnos formalmente cerrados, pertenece al turno actual
-        if (!i.shiftId || !closedShiftIds.has(i.shiftId)) return true;
-        return false;
-      });
+      // Fetch Shifts
+      const { data: shiftsData } = await supabase.from("shifts").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
 
-      setPaidInvoices(currentShiftInvoices);
-
-      // History logic (Mapeo incondicional directo)
-      calculatedHistory = closedShifts.map((cs) => {
-        const cashier = (usersData || []).find(
-            (u) => u.id === cs.closed_by || u.id === cs.opened_by
+      if (shiftsData) {
+        const activeShift = shiftsData.find((s) => s.closed_at === null);
+        if (activeShift) {
+          setCurrentShiftId(activeShift.id);
+          setShiftStartTime(activeShift.opened_at);
+          currentShiftInvoices = allInvoices.filter(
+            (inv) => inv.shiftId === activeShift.id,
           );
+          setPaidInvoices(currentShiftInvoices);
+        } else {
+          setCurrentShiftId(null);
+          setPaidInvoices([]);
+        }
+
+        const closedShifts = shiftsData.filter((s) => s.closed_at !== null);
+        calculatedHistory = closedShifts.map((shift) => {
+          const shiftInvoices = allInvoices.filter(
+            (inv) => inv.shiftId === shift.id,
+          );
+          const totalSales = shiftInvoices.reduce(
+            (sum, inv) => sum + inv.total,
+            0,
+          );
+          const totalCash = shiftInvoices
+            .filter((inv) => inv.paymentMethod === "Efectivo")
+            .reduce((sum, inv) => sum + inv.total, 0);
+          const totalCard = shiftInvoices
+            .filter((inv) => inv.paymentMethod !== "Efectivo")
+            .reduce((sum, inv) => sum + inv.total, 0);
+
+          const cashier = usersData?.find((u) => u.id === shift.opened_by);
+
           return {
-            id: cs.id,
-            cashierName: cashier?.name || "Cajero Principal",
-            startTime: cs.opened_at,
-            endTime: cs.closed_at,
-            totalSales: Number(cs.total_real || cs.total_expected),
-            totalCash: allMappedInvoices
-              .filter(
-                (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
-              )
-              .reduce((s, i) => s + i.total, 0),
-            totalCard: allMappedInvoices
-              .filter(
-                (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
-              )
-              .reduce((s, i) => s + i.total, 0),
-            invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
+            id: shift.id,
+            startTime: shift.opened_at,
+            endTime: shift.closed_at,
+            totalSales,
+            totalCash,
+            totalCard,
+            cashierName: cashier ? cashier.name : "Cajero",
+            invoices: shiftInvoices,
           };
         });
 
-      setCashRegisterHistory(calculatedHistory);
+        setCashRegisterHistory(
+          calculatedHistory.sort(
+            (a, b) => new Date(b.endTime) - new Date(a.endTime),
+          ),
+        );
+      }
 
-      // Fetch expenses
-      const { data: expData } = await supabase.from("expenses").select("*");
-      if (expData) {
+      // Fetch Expenses
+      const { data: expensesData } = await supabase.from("expenses").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
+
+      if (expensesData) {
         setExpenses(
-          expData.map((e) => ({
+          expensesData.map((e) => ({
             id: e.id,
+            amount: Number(e.amount),
             description: e.description,
             category: e.category,
-            amount: Number(e.amount),
-            isPaid: e.is_paid,
-            notificationDate: e.notification_date,
-            date: e.created_at,
+            date: e.date,
           })),
         );
       }
-      
-      // Guardar snapshot para uso 100% offline
+
+      // Guardar snapshot para uso offline
       saveOfflineSnapshot({
         products: mappedProducts,
         tables: newTables,
-        categories: categoriesData,
-        users: usersData,
-        expenses: expData,
-        exchangeRate,
-        shiftId: currentShiftId,
+        categories: categoriesData || CATEGORIES,
+        users: usersData || [],
         paidInvoices: currentShiftInvoices,
         cashRegisterHistory: calculatedHistory,
       });
 
     } catch (err) {
-      console.warn("Conexión remota no disponible, usando caché offline:", err);
-      // Fallback a Snapshot Offline si se cae el internet
-      const snapshot = getOfflineSnapshot();
-      if (snapshot) {
-        if (snapshot.products && snapshot.products.length > 0) setProducts(snapshot.products);
-        if (snapshot.tables && snapshot.tables.length > 0) setTables(snapshot.tables);
-        if (snapshot.categories) setCategories(snapshot.categories);
-        if (snapshot.users) setUsers(snapshot.users);
-        if (snapshot.expenses) setExpenses(snapshot.expenses);
-        if (snapshot.exchangeRate) setExchangeRate(snapshot.exchangeRate);
-        if (snapshot.paidInvoices) setPaidInvoices(snapshot.paidInvoices);
-        if (snapshot.cashRegisterHistory) setCashRegisterHistory(snapshot.cashRegisterHistory);
+      console.error("Error al cargar datos desde Supabase:", err);
+      // Cargar desde snapshot si estamos offline
+      if (!navigator.onLine) {
+        const snapshot = getOfflineSnapshot();
+        if (snapshot) {
+          if (snapshot.products) setProducts(snapshot.products);
+          if (snapshot.tables) setTables(snapshot.tables);
+          if (snapshot.categories) setCategories(snapshot.categories);
+          if (snapshot.users) setUsers(snapshot.users);
+          if (snapshot.paidInvoices) setPaidInvoices(snapshot.paidInvoices);
+          if (snapshot.cashRegisterHistory) setCashRegisterHistory(snapshot.cashRegisterHistory);
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
+  // Sincronización en Tiempo Real
   useEffect(() => {
-    fetchData(false);
+    fetchData();
 
     const triggerSync = () => {
       fetchData(true);
     };
 
-    // Auto-Sincronización al detectar que regresa el Internet
-    const handleOnline = () => {
-      console.log("🌐 Conexión a Internet restablecida. Sincronizando cola offline...");
+    const handleOnline = async () => {
       setIsOnline(true);
-      syncOfflineQueue(supabase, ({ synced, remaining }) => {
-        setPendingSyncCount(remaining);
-        if (synced > 0) fetchData(true);
+      console.log("📶 Conexión restablecida. Sincronizando cola offline...");
+      const result = await syncOfflineQueue(supabase, () => {
+        setPendingSyncCount(getOfflineQueue().length);
+        fetchData(true);
       });
+      setPendingSyncCount(result.remaining);
     };
 
     const handleOffline = () => {
-      console.warn("⚠️ Dispositivo sin conexión a Internet. Activando modo Local-First.");
       setIsOnline(false);
+      console.log("📵 Conexión perdida. Operando en modo Offline.");
     };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Intentar sincronizar cola pendiente si hay internet al iniciar
-    if (typeof navigator !== 'undefined' && navigator.onLine && getOfflineQueue().length > 0) {
-      syncOfflineQueue(supabase, ({ remaining }) => {
-        setPendingSyncCount(remaining);
-        fetchData(true);
-      });
-    }
-
-    // 1. Instant WebSocket Realtime Event Listener
+    // 1. Supabase Realtime Channels
     const channel = supabase
-      .channel(`bar-realtime-live`)
+      .channel("db-changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tables" },
@@ -477,12 +488,12 @@ export const BarProvider = ({ children }) => {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "invoices" },
+        { event: "*", schema: "public", table: "products" },
         triggerSync,
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "categories" },
+        { event: "*", schema: "public", table: "invoices" },
         triggerSync,
       )
       .on(
@@ -492,12 +503,12 @@ export const BarProvider = ({ children }) => {
       )
       .subscribe();
 
-    // 2. High-frequency 2-second background sync fallback
+    // 2. Background sync fallback cada 8 segundos
     const syncInterval = setInterval(() => {
       if (typeof navigator !== 'undefined' && navigator.onLine) {
         fetchData(true);
       }
-    }, 2000);
+    }, 8000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -506,6 +517,95 @@ export const BarProvider = ({ children }) => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Función serializada que ejecuta la escritura a Supabase de forma atómica y ordenada
+  const performTableWrite = async (sTableId) => {
+    const dataToWrite = latestPendingWriteRef.current.get(sTableId);
+    if (!dataToWrite) return;
+
+    // Consumir el pending actual
+    latestPendingWriteRef.current.delete(sTableId);
+
+    const writePromise = (async () => {
+      const {
+        effectiveName,
+        isOccupied,
+        customerName,
+        isBar,
+        items,
+        unprintedItems,
+        targetTable,
+      } = dataToWrite;
+
+      try {
+        if (!navigator.onLine) {
+          throw new Error("Sin conexión a internet (detectado localmente)");
+        }
+
+        const { error: e1 } = await supabase.from("tables").upsert(
+          {
+            id: sTableId,
+            name: effectiveName,
+            status: isOccupied ? "ocupada" : "libre",
+            customer_name: customerName,
+            assigned_waiter_id: currentUser?.id,
+            created_at: isOccupied ? new Date().toISOString() : null,
+            is_bar_account: Boolean(isBar),
+          },
+          { onConflict: "id" },
+        );
+        if (e1) throw e1;
+
+        const { error: e2 } = await supabase
+          .from("orders")
+          .delete()
+          .eq("table_id", sTableId);
+        if (e2) throw e2;
+
+        if (isOccupied) {
+          const ordersToInsert = items.map((i) => ({
+            table_id: sTableId,
+            product_id: String(i.product.id),
+            quantity: i.quantity,
+            is_printed: unprintedItems
+              ? !unprintedItems.find(
+                  (u) => String(u.product.id) === String(i.product.id),
+                )
+              : true,
+          }));
+          const { error: e3 } = await supabase
+            .from("orders")
+            .insert(ordersToInsert);
+          if (e3) throw e3;
+        }
+      } catch (dbErr) {
+        console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
+
+        enqueueOfflineAction("UPDATE_ORDER", {
+          tableId: sTableId,
+          tableName: effectiveName,
+          items: items,
+          isBar: isBar,
+          customerName: customerName,
+          waiterId: currentUser?.id,
+        });
+
+        setPendingSyncCount(getOfflineQueue().length);
+      }
+    })();
+
+    inFlightWritesRef.current.set(sTableId, writePromise);
+
+    try {
+      await writePromise;
+    } finally {
+      inFlightWritesRef.current.delete(sTableId);
+      // Si mientras corríamos llegó una nueva versión pendiente, procesarla de inmediato
+      if (latestPendingWriteRef.current.has(sTableId)) {
+        performTableWrite(sTableId);
+      }
+    }
+  };
 
   const updateTableOrder = async (
     tableId,
@@ -520,6 +620,7 @@ export const BarProvider = ({ children }) => {
 
       const targetTable = tables.find((t) => String(t.id) === sTableId);
       const effectiveName = tableName || targetTable?.name || `Mesa ${sTableId}`;
+      const isBar = Boolean(targetTable?.isBar);
 
       // 1. Record in-flight pending state immediately to protect against background overwrites
       pendingSyncTablesRef.current.set(sTableId, {
@@ -531,7 +632,18 @@ export const BarProvider = ({ children }) => {
         timestamp: Date.now(),
       });
 
-      // 2. OPTIMISTIC UI UPDATE
+      // 2. Guardar la versión más reciente en la cola de escritura serializada
+      latestPendingWriteRef.current.set(sTableId, {
+        effectiveName,
+        isOccupied,
+        customerName,
+        isBar,
+        items,
+        unprintedItems,
+        targetTable,
+      });
+
+      // 3. OPTIMISTIC UI UPDATE
       setTables((prevTables) =>
         prevTables.map((t) => {
           if (String(t.id) === sTableId) {
@@ -550,69 +662,15 @@ export const BarProvider = ({ children }) => {
         }),
       );
 
-      // 3. Debounced clean write to Supabase (200ms)
+      // 4. Debounced write to Supabase (200ms)
       if (updateOrderDebounceTimersRef.current.has(sTableId)) {
         clearTimeout(updateOrderDebounceTimersRef.current.get(sTableId));
       }
 
-      const timerId = setTimeout(async () => {
-        try {
-          if (!navigator.onLine) {
-            throw new Error("Sin conexión a internet (detectado localmente)");
-          }
-
-          const { error: e1 } = await supabase.from("tables").upsert(
-            {
-              id: sTableId,
-              name: effectiveName,
-              status: isOccupied ? "ocupada" : "libre",
-              customer_name: customerName,
-              assigned_waiter_id: currentUser?.id,
-              created_at: isOccupied ? new Date().toISOString() : null,
-              is_bar_account: Boolean(targetTable?.isBar),
-            },
-            { onConflict: "id" },
-          );
-          if (e1) throw e1;
-
-          const { error: e2 } = await supabase
-            .from("orders")
-            .delete()
-            .eq("table_id", sTableId);
-          if (e2) throw e2;
-
-          if (isOccupied) {
-            const ordersToInsert = items.map((i) => ({
-              table_id: sTableId,
-              product_id: String(i.product.id),
-              quantity: i.quantity,
-              is_printed: unprintedItems
-                ? !unprintedItems.find(
-                    (u) => String(u.product.id) === String(i.product.id),
-                  )
-                : true,
-            }));
-            const { error: e3 } = await supabase
-              .from("orders")
-              .insert(ordersToInsert);
-            if (e3) throw e3;
-          }
-        } catch (dbErr) {
-          console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
-          
-          // Encolar acción para sincronizarla cuando vuelva el internet
-          const isBar = Boolean(targetTable?.isBar);
-          enqueueOfflineAction("UPDATE_ORDER", {
-            tableId: sTableId,
-            tableName: effectiveName,
-            items: items,
-            isBar: isBar,
-            customerName: customerName,
-            waiterId: currentUser?.id,
-          });
-          
-          // Incrementar contador visual para el cajero
-          setPendingSyncCount(getOfflineQueue().length);
+      const timerId = setTimeout(() => {
+        // Solo disparar si no hay una escritura en curso para esta mesa
+        if (!inFlightWritesRef.current.has(sTableId)) {
+          performTableWrite(sTableId);
         }
       }, 200);
 

@@ -87,7 +87,7 @@ export const ProductCatalog = ({
 
       {/* Lista de Productos de la Categoría */}
       <div 
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-4 p-2 lg:p-0"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 overflow-y-auto flex-1 min-h-0 touch-pan-y pr-2 custom-scrollbar pb-6 p-1"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {filteredProducts.map((product) => {
@@ -115,7 +115,7 @@ export const ProductCatalog = ({
                   />
                 )}
                 <div className="absolute top-2 right-2 bg-blue-600 text-white px-2.5 py-0.5 rounded-md text-xs font-black tracking-wide shadow-sm">
-                  C${product.price.toFixed(2)}
+                  C${Number(product.price || 0).toFixed(2)}
                 </div>
               </div>
 
@@ -146,6 +146,7 @@ export const ProductCatalog = ({
 
                 <div className="mt-2.5">
                   <button
+                    type="button"
                     disabled={isOutOfStock}
                     className={`w-full text-xs font-bold px-2 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs ${
                       isOutOfStock

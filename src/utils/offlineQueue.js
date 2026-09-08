@@ -171,7 +171,7 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
           if (items && items.length > 0) {
             const ordersToInsert = items.map(it => ({
               table_id: sTableId,
-              product_id: it.product.id,
+              product_id: String(it.product.id),
               quantity: it.quantity,
               is_printed: true,
             }));

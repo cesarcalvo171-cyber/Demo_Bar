@@ -180,22 +180,33 @@ export const ProfitLossReport = () => {
         displayName = 'CUBETAZO CLASICA (x6 bot.)';
       }
 
-      // Productos
+      // Productos: calcular total vendido, costo total y ganancia
+      let unitCost = Number(item.cost || item.product?.cost || 0);
+      if (!unitCost && matchedProd && matchedProd.cost) {
+        unitCost = Number(matchedProd.cost);
+      }
+      const totalCostItem = unitCost * qty;
+      const totalProfitItem = total - totalCostItem;
+
       if (!liveProdMap[displayName]) {
         liveProdMap[displayName] = {
           name: displayName,
           category: catName,
           quantity: 0,
           totalAmount: 0,
+          totalCost: 0,
+          totalProfit: 0,
         };
       }
       liveProdMap[displayName].quantity += physicalUnits;
       liveProdMap[displayName].totalAmount += total;
+      liveProdMap[displayName].totalCost += totalCostItem;
+      liveProdMap[displayName].totalProfit += totalProfitItem;
     });
   });
 
   const liveCategoryList = Object.values(liveCatMap).sort((a, b) => b.totalAmount - a.totalAmount);
-  const liveProductList = Object.values(liveProdMap).sort((a, b) => b.quantity - a.quantity);
+  const liveProductList = Object.values(liveProdMap).sort((a, b) => b.totalAmount - a.totalAmount);
 
   return (
     <div className="space-y-4 sm:space-y-6 font-sans">
@@ -399,55 +410,47 @@ export const ProfitLossReport = () => {
                 </div>
               </div>
 
-              {/* Ventas por Categoría en Vivo */}
+              {/* Totales por Producto en Vivo */}
               <div>
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-slate-500" />
-                  Ventas por Categoría en Tiempo Real ({liveCategoryList.length})
+                  <Package className="w-4 h-4 text-slate-500" />
+                  Totales por Producto en Tiempo Real ({liveProductList.length})
                 </h4>
 
-                {liveCategoryList.length === 0 ? (
+                {liveProductList.length === 0 ? (
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center text-slate-400 text-xs">
                     No se han registrado ventas en el turno actual todavía.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {liveCategoryList.map(cat => {
-                      const isBeer = cat.name.includes('CERVEZA');
-                      const isFood = cat.name.includes('COMIDA');
-                      const isLiquor = cat.name.includes('LICOR');
-                      const isSnack = cat.name.includes('CHIVERIA') || cat.name.includes('CHIVERÍA');
-
-                      const borderBg = isBeer 
-                        ? 'bg-amber-50/70 border-amber-200' 
-                        : isFood 
-                        ? 'bg-orange-50/70 border-orange-200' 
-                        : isLiquor 
-                        ? 'bg-purple-50/70 border-purple-200' 
-                        : isSnack 
-                        ? 'bg-emerald-50/70 border-emerald-200' 
-                        : 'bg-slate-50 border-slate-200';
-
-                      const textColor = isBeer 
-                        ? 'text-amber-800' 
-                        : isFood 
-                        ? 'text-orange-800' 
-                        : isLiquor 
-                        ? 'text-purple-800' 
-                        : isSnack 
-                        ? 'text-emerald-800' 
-                        : 'text-slate-700';
-
-                      return (
-                        <div key={cat.name} className={`${borderBg} border p-4 rounded-2xl shadow-xs transition-all`}>
-                          <span className={`text-[10px] font-black uppercase tracking-wider block ${textColor}`}>
-                            {cat.name}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {liveProductList.map(prod => (
+                      <div key={prod.name} className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl shadow-xs flex flex-col justify-between hover:border-blue-300 transition-all">
+                        <div>
+                          <div className="flex justify-between items-start gap-2 mb-1">
+                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight line-clamp-1">{prod.name}</span>
+                            <span className="text-[9px] font-bold text-slate-500 bg-slate-200/80 px-1.5 py-0.5 rounded shrink-0">{prod.category}</span>
+                          </div>
+                          <span className="text-xs font-bold text-emerald-600 block mb-2">
+                            {prod.quantity} {prod.quantity === 1 ? 'unidad vendida' : 'unidades vendidas'}
                           </span>
-                          <p className="text-xl font-black text-slate-900 m-0 mt-1">C${cat.totalAmount.toFixed(2)}</p>
-                          <span className="text-xs font-bold text-slate-500 mt-0.5 block">{cat.totalUnits} unidades vendidas</span>
                         </div>
-                      );
-                    })}
+
+                        <div className="pt-2 border-t border-slate-200/80 grid grid-cols-3 gap-1 text-[11px]">
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">Vendido</span>
+                            <strong className="text-slate-900 font-extrabold">C${prod.totalAmount.toFixed(2)}</strong>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">Costo</span>
+                            <strong className="text-slate-600 font-bold">C${prod.totalCost.toFixed(2)}</strong>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-bold text-emerald-600 uppercase block">Ganancia</span>
+                            <strong className="text-emerald-700 font-black">C${prod.totalProfit.toFixed(2)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -455,8 +458,8 @@ export const ProfitLossReport = () => {
               {/* Lista Detallada de Productos Vendidos en el Turno */}
               <div>
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Package className="w-4 h-4 text-slate-500" />
-                  Productos Despachados en este Turno ({liveProductList.length})
+                  <Layers className="w-4 h-4 text-slate-500" />
+                  Auditoría Detallada de Productos en Vivo ({liveProductList.length})
                 </h4>
 
                 {liveProductList.length === 0 ? (
@@ -469,45 +472,30 @@ export const ProfitLossReport = () => {
                       <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
                         <tr>
                           <th className="py-3 px-4">Producto</th>
-                          <th className="py-3 px-4">Categoría</th>
-                          <th className="py-3 px-4 text-center">Unidades Vendidas</th>
-                          <th className="py-3 px-4 text-right">Monto Recaudado</th>
+                          <th className="py-3 px-3 text-center">Unidades</th>
+                          <th className="py-3 px-3 text-right">Total Vendido</th>
+                          <th className="py-3 px-3 text-right">Costo Total</th>
+                          <th className="py-3 px-4 text-right">Ganancia</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {liveProductList.map(prod => {
-                          const isBeer = prod.category.includes('CERVEZA');
-                          const isFood = prod.category.includes('COMIDA');
-                          const isLiquor = prod.category.includes('LICOR');
-                          const isSnack = prod.category.includes('CHIVERIA') || prod.category.includes('CHIVERÍA');
-
-                          const badgeClass = isBeer 
-                            ? 'bg-amber-100 text-amber-900 border-amber-200' 
-                            : isFood 
-                            ? 'bg-orange-100 text-orange-900 border-orange-200' 
-                            : isLiquor 
-                            ? 'bg-purple-100 text-purple-900 border-purple-200' 
-                            : isSnack 
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-200' 
-                            : 'bg-slate-100 text-slate-800 border-slate-200';
-
-                          return (
-                            <tr key={prod.name} className="hover:bg-slate-50/80">
-                              <td className="py-3 px-4 font-bold text-slate-900">{prod.name}</td>
-                              <td className="py-3 px-4">
-                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${badgeClass}`}>
-                                  {prod.category}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-center font-black text-slate-800">
-                                {prod.quantity}
-                              </td>
-                              <td className="py-3 px-4 text-right font-black text-emerald-600 text-sm">
-                                C${prod.totalAmount.toFixed(2)}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {liveProductList.map(prod => (
+                          <tr key={prod.name} className="hover:bg-slate-50/80">
+                            <td className="py-3 px-4 font-bold text-slate-900">{prod.name}</td>
+                            <td className="py-3 px-3 text-center font-bold text-blue-600">
+                              {prod.quantity}
+                            </td>
+                            <td className="py-3 px-3 text-right font-black text-slate-900">
+                              C${prod.totalAmount.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-3 text-right font-medium text-slate-500">
+                              C${prod.totalCost.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-black text-emerald-600 text-sm">
+                              C${prod.totalProfit.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>

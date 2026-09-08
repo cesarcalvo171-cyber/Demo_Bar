@@ -172,16 +172,29 @@ export const printShiftCloseReceipt = ({
         stockDisplay = `${matchedProd.stock} unid.`;
       }
 
-      // Acumular por producto
+      // Acumular por producto: unidades, total vendido, costo y ganancia
+      let unitCost = Number(item.cost || item.product?.cost || 0);
+      if (!unitCost && matchedProd && matchedProd.cost) {
+        unitCost = Number(matchedProd.cost);
+      }
+      const totalCostItem = unitCost * qty;
+      const totalProfitItem = totalItem - totalCostItem;
+
       if (!productAuditMap[displayName]) {
         productAuditMap[displayName] = {
           name: displayName,
           category: catDisplayName,
           quantitySold: 0,
+          totalAmount: 0,
+          totalCost: 0,
+          totalProfit: 0,
           currentStock: stockDisplay,
         };
       }
       productAuditMap[displayName].quantitySold += physicalUnits;
+      productAuditMap[displayName].totalAmount += totalItem;
+      productAuditMap[displayName].totalCost += totalCostItem;
+      productAuditMap[displayName].totalProfit += totalProfitItem;
       productAuditMap[displayName].currentStock = stockDisplay;
     });
   });
@@ -190,7 +203,7 @@ export const printShiftCloseReceipt = ({
     (a, b) => b.totalAmount - a.totalAmount
   );
   const productsList = Object.values(productAuditMap).sort(
-    (a, b) => b.quantitySold - a.quantitySold
+    (a, b) => b.totalAmount - a.totalAmount
   );
 
   // 2. Generar el contenido HTML para la impresora térmica
@@ -232,17 +245,17 @@ export const printShiftCloseReceipt = ({
     </div>
 
     <div style="border-top: 1px dashed #000; margin: 12px 0 8px;"></div>
-    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">TOTALES POR CATEGORÍA</div>
-    <div style="font-size: 16px; line-height: 1.5; color: #000;">
+    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">TOTALES POR PRODUCTO</div>
+    <div style="font-size: 15px; line-height: 1.5; color: #000;">
       ${
-        categoriesList.length === 0
+        productsList.length === 0
           ? `<div style="font-style: italic; color: #000;">Sin ventas registradas</div>`
-          : categoriesList
+          : productsList
               .map(
-                (cat) => `
+                (p) => `
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-          <span>• ${cat.name} (${cat.totalUnits} unid):</span>
-          <strong>C$${cat.totalAmount.toFixed(2)}</strong>
+          <span>• ${p.name} (${p.quantitySold}u):</span>
+          <strong>C$${p.totalAmount.toFixed(2)}</strong>
         </div>`
               )
               .join("")
@@ -252,26 +265,28 @@ export const printShiftCloseReceipt = ({
     <div style="border-top: 1px dashed #000; margin: 12px 0 8px;"></div>
     <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">
       AUDITORÍA DE INVENTARIO
-      <div style="font-size: 14px; font-weight: normal; color: #000;">(Vendido en Turno vs Stock Restante)</div>
+      <div style="font-size: 14px; font-weight: normal; color: #000;">(Vendido vs Stock Restante)</div>
     </div>
-    <table style="width: 100%; font-size: 16px; border-collapse: collapse; text-align: left; color: #000;">
+    <table style="width: 100%; font-size: 15px; border-collapse: collapse; text-align: left; color: #000;">
       <thead>
         <tr style="border-bottom: 1px solid #000;">
           <th style="padding: 4px 0;">PRODUCTO</th>
-          <th style="padding: 4px 0; text-align: center; width: 50px;">VEND.</th>
-          <th style="padding: 4px 0; text-align: right; width: 70px;">STOCK</th>
+          <th style="padding: 4px 0; text-align: center; width: 45px;">VEND.</th>
+          <th style="padding: 4px 0; text-align: right; width: 75px;">TOTAL</th>
+          <th style="padding: 4px 0; text-align: right; width: 65px;">STOCK</th>
         </tr>
       </thead>
       <tbody>
         ${
           productsList.length === 0
-            ? `<tr><td colspan="3" style="text-align: center; padding: 6px;">Sin productos vendidos</td></tr>`
+            ? `<tr><td colspan="4" style="text-align: center; padding: 6px;">Sin productos vendidos</td></tr>`
             : productsList
                 .map(
                   (p) => `
           <tr style="border-bottom: 1px dotted #000;">
             <td style="padding: 4px 0; font-weight: 500;">${p.name}</td>
             <td style="padding: 4px 0; text-align: center; font-weight: bold;">${p.quantitySold}</td>
+            <td style="padding: 4px 0; text-align: right; font-weight: bold;">C$${p.totalAmount.toFixed(0)}</td>
             <td style="padding: 4px 0; text-align: right; font-weight: bold;">${p.currentStock}</td>
           </tr>`
                 )
