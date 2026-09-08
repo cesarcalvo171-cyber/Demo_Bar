@@ -143,8 +143,7 @@ export const BarProvider = ({ children }) => {
         // Función auxiliar que resuelve los items de una mesa protegiendo contra race conditions
         const resolveTableItems = (tableId, dbTable, tableOrders) => {
           const sId = String(tableId);
-          // El escudo de 5 min (300000ms) solo debe activarse si estamos realmente OFFLINE.
-          // Si estamos ONLINE, usamos un margen breve de 2 segundos (2000ms) para proteger mientras viaja la petición.
+          // El snapshot local es autoritativo hasta que su escritura atómica termina.
           const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
           const shieldDuration = isOffline ? 300000 : 2000;
 
@@ -214,38 +213,12 @@ export const BarProvider = ({ children }) => {
             };
           }
 
-          // Unir items locales pendientes con los de BD sin perder nada
-          const consolidatedItemsMap = new Map(dbItemsMap);
-          (pending.items || []).forEach((pItem) => {
-            const pProdId = String(pItem.product.id);
-            if (!consolidatedItemsMap.has(pProdId)) {
-              consolidatedItemsMap.set(pProdId, pItem);
-            } else {
-              consolidatedItemsMap.get(pProdId).quantity = Math.max(
-                consolidatedItemsMap.get(pProdId).quantity,
-                pItem.quantity,
-              );
-            }
-          });
-
-          const consolidatedUnprintedMap = new Map(dbUnprintedMap);
-          (pending.unprintedItems || []).forEach((pUnprinted) => {
-            const pProdId = String(pUnprinted.product.id);
-            if (!consolidatedUnprintedMap.has(pProdId)) {
-              consolidatedUnprintedMap.set(pProdId, pUnprinted);
-            } else {
-              consolidatedUnprintedMap.get(pProdId).quantity = Math.max(
-                consolidatedUnprintedMap.get(pProdId).quantity,
-                pUnprinted.quantity,
-              );
-            }
-          });
-
           return {
             status: pending.status || dbTable.status || "ocupada",
             customerName: pending.customerName !== undefined ? pending.customerName : dbTable.customer_name || "",
-            items: Array.from(consolidatedItemsMap.values()),
-            unprintedItems: Array.from(consolidatedUnprintedMap.values()),
+            // No mezclar con la BD: una reducción a cero debe seguir siendo cero.
+            items: pending.items || [],
+            unprintedItems: pending.unprintedItems || [],
           };
         };
 
@@ -279,6 +252,7 @@ export const BarProvider = ({ children }) => {
             assignedWaiterName: usersData?.find(u => u.id === dbTable.assigned_waiter_id)?.name,
             createdAt: dbTable.created_at,
             isBar: Boolean(dbTable.is_bar_account),
+            orderVersion: Number(dbTable.order_version || 0),
             items: resolved.items,
             unprintedItems: resolved.unprintedItems,
           });
@@ -296,6 +270,7 @@ export const BarProvider = ({ children }) => {
               assignedWaiterName: currentUser?.name,
               createdAt: new Date().toISOString(),
               isBar: pId.startsWith("barra_"),
+              orderVersion: pData.orderVersion || 0,
               items: pData.items || [],
               unprintedItems: pData.unprintedItems || [],
             });
@@ -535,6 +510,8 @@ export const BarProvider = ({ children }) => {
         items,
         unprintedItems,
         targetTable,
+        orderVersion,
+        writeId,
       } = dataToWrite;
 
       try {
@@ -542,55 +519,77 @@ export const BarProvider = ({ children }) => {
           throw new Error("Sin conexión a internet (detectado localmente)");
         }
 
-        const { error: e1 } = await supabase.from("tables").upsert(
-          {
-            id: sTableId,
+        const orderItems = items.map((item) => ({
+          product_id: String(item.product.id),
+          quantity: item.quantity,
+          is_printed: unprintedItems
+            ? !unprintedItems.some(
+                (unprinted) => String(unprinted.product.id) === String(item.product.id),
+              )
+            : true,
+        }));
+        const { data, error } = await supabase.rpc("save_table_order", {
+          p_table_id: sTableId,
+          p_expected_version: orderVersion,
+          p_table: {
             name: effectiveName,
             status: isOccupied ? "ocupada" : "libre",
             customer_name: customerName,
-            assigned_waiter_id: currentUser?.id,
-            created_at: isOccupied ? new Date().toISOString() : null,
+            assigned_waiter_id: currentUser?.id || "",
+            created_at: targetTable?.createdAt || new Date().toISOString(),
             is_bar_account: Boolean(isBar),
           },
-          { onConflict: "id" },
-        );
-        if (e1) throw e1;
-
-        const { error: e2 } = await supabase
-          .from("orders")
-          .delete()
-          .eq("table_id", sTableId);
-        if (e2) throw e2;
-
-        if (isOccupied) {
-          const ordersToInsert = items.map((i) => ({
-            table_id: sTableId,
-            product_id: String(i.product.id),
-            quantity: i.quantity,
-            is_printed: unprintedItems
-              ? !unprintedItems.find(
-                  (u) => String(u.product.id) === String(i.product.id),
-                )
-              : true,
-          }));
-          const { error: e3 } = await supabase
-            .from("orders")
-            .insert(ordersToInsert);
-          if (e3) throw e3;
-        }
-      } catch (dbErr) {
-        console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
-
-        enqueueOfflineAction("UPDATE_ORDER", {
-          tableId: sTableId,
-          tableName: effectiveName,
-          items: items,
-          isBar: isBar,
-          customerName: customerName,
-          waiterId: currentUser?.id,
+          p_items: orderItems,
         });
+        if (error) throw error;
 
-        setPendingSyncCount(getOfflineQueue().length);
+        const confirmedVersion = Number(data?.order_version ?? orderVersion + 1);
+        // A queued local edit must use the version that this transaction just created.
+        const nextWrite = latestPendingWriteRef.current.get(sTableId);
+        if (nextWrite) nextWrite.orderVersion = confirmedVersion;
+
+        // Do not clear a newer local edit that arrived while this request ran.
+        if (pendingSyncTablesRef.current.get(sTableId)?.writeId === writeId) {
+          pendingSyncTablesRef.current.delete(sTableId);
+        } else if (pendingSyncTablesRef.current.has(sTableId)) {
+          pendingSyncTablesRef.current.get(sTableId).orderVersion = confirmedVersion;
+        }
+        setTables((prev) => prev.map((table) =>
+          String(table.id) === sTableId
+            ? { ...table, orderVersion: confirmedVersion }
+            : table,
+        ));
+      } catch (dbErr) {
+        if (dbErr?.code === "40001" || String(dbErr?.message).includes("TABLE_ORDER_CONFLICT")) {
+          // Another device saved this table first. Never merge quantities automatically.
+          pendingSyncTablesRef.current.delete(sTableId);
+          console.warn("Conflicto de versión en mesa", sTableId);
+          window.alert("Esta cuenta fue modificada desde otro dispositivo. Se cargará la versión más reciente antes de continuar.");
+          fetchData(true);
+          return;
+        }
+
+        if (!navigator.onLine || String(dbErr?.message).includes("Failed to fetch")) {
+          console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
+          enqueueOfflineAction("UPDATE_ORDER", {
+            tableId: sTableId,
+            tableName: effectiveName,
+            items,
+            unprintedItems,
+            isBar,
+            customerName,
+            waiterId: currentUser?.id,
+            createdAt: targetTable?.createdAt || new Date().toISOString(),
+            expectedVersion: orderVersion,
+          });
+          setPendingSyncCount(getOfflineQueue().length);
+          return;
+        }
+
+        // A server/configuration error must be visible; queuing it would replay an unsafe write forever.
+        pendingSyncTablesRef.current.delete(sTableId);
+        console.error("No se pudo guardar el pedido de forma segura:", dbErr);
+        fetchData(true);
       }
     })();
 
@@ -621,6 +620,8 @@ export const BarProvider = ({ children }) => {
       const targetTable = tables.find((t) => String(t.id) === sTableId);
       const effectiveName = tableName || targetTable?.name || `Mesa ${sTableId}`;
       const isBar = Boolean(targetTable?.isBar);
+      const orderVersion = Number(targetTable?.orderVersion || 0);
+      const writeId = `write_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
       // 1. Record in-flight pending state immediately to protect against background overwrites
       pendingSyncTablesRef.current.set(sTableId, {
@@ -629,6 +630,8 @@ export const BarProvider = ({ children }) => {
         unprintedItems: unprintedItems || [],
         customerName,
         status: isOccupied ? "ocupada" : "libre",
+        orderVersion,
+        writeId,
         timestamp: Date.now(),
       });
 
@@ -641,6 +644,8 @@ export const BarProvider = ({ children }) => {
         items,
         unprintedItems,
         targetTable,
+        orderVersion,
+        writeId,
       });
 
       // 3. OPTIMISTIC UI UPDATE
@@ -656,6 +661,7 @@ export const BarProvider = ({ children }) => {
               assignedWaiterName: currentUser?.name || t.assignedWaiterName,
               items: items,
               unprintedItems: unprintedItems || [],
+              orderVersion,
             };
           }
           return t;
@@ -683,6 +689,8 @@ export const BarProvider = ({ children }) => {
   const clearUnprintedItems = async (tableId) => {
     try {
       const sTableId = String(tableId);
+      const table = tables.find((item) => String(item.id) === sTableId);
+      if (!table) return;
       
       const currentShield = pendingSyncTablesRef.current.get(sTableId);
       if (currentShield) {
@@ -702,10 +710,9 @@ export const BarProvider = ({ children }) => {
           return t;
         }),
       );
-      await supabase
-        .from("orders")
-        .update({ is_printed: true })
-        .eq("table_id", sTableId);
+      // Printing changes the order snapshot too; save it through the same
+      // versioned transaction instead of issuing an independent row update.
+      updateTableOrder(sTableId, table.items, table.customerName, [], table.name);
     } catch (err) {
       console.error("Error clearing unprinted items:", err);
     }
@@ -722,6 +729,7 @@ export const BarProvider = ({ children }) => {
         unprintedItems: [],
         customerName: clientName,
         status: "ocupada",
+        orderVersion: 0,
         timestamp: Date.now(),
       });
 
@@ -737,6 +745,7 @@ export const BarProvider = ({ children }) => {
           assignedWaiterName: currentUser?.name,
           createdAt: new Date().toISOString(),
           isBar: true,
+          orderVersion: 0,
           items: [],
           unprintedItems: [],
         },
@@ -786,6 +795,7 @@ export const BarProvider = ({ children }) => {
         unprintedItems: [],
         customerName: clientName,
         status: "ocupada",
+        orderVersion: 0,
         timestamp: Date.now(),
       });
 
@@ -798,6 +808,7 @@ export const BarProvider = ({ children }) => {
         assignedWaiterName: currentUser?.name,
         createdAt: new Date().toISOString(),
         isBar: false,
+        orderVersion: 0,
         items: [],
         unprintedItems: [],
       };

@@ -19,7 +19,7 @@ export const getOfflineQueue = () => {
 
 /**
  * Guardar una nueva operación en la cola offline
- * @param {string} type - Tipo de operación: 'CREATE_INVOICE' | 'UPDATE_ORDER' | 'CANCEL_ORDER' | 'CREATE_EXPENSE' | 'UPDATE_STOCK'
+ * @param {string} type - Tipo de operación: 'CREATE_INVOICE' | 'UPDATE_ORDER' | 'CANCEL_ORDER' | 'CREATE_EXPENSE'
  * @param {object} payload - Datos de la operación
  */
 export const enqueueOfflineAction = (type, payload) => {
@@ -153,31 +153,43 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
         }
 
         case 'UPDATE_ORDER': {
-          const { tableId, items, isBar, customerName, waiterId, tableName } = item.payload;
+          const {
+            tableId,
+            items,
+            unprintedItems,
+            isBar,
+            customerName,
+            waiterId,
+            tableName,
+            createdAt,
+            expectedVersion,
+          } = item.payload;
           const sTableId = String(tableId);
-
-          // Actualizar mesa
-          await supabase.from('tables').upsert({
-            id: sTableId,
-            name: tableName || (isBar ? 'Barra' : `Mesa ${sTableId}`),
-            status: 'ocupada',
-            customer_name: customerName,
-            assigned_waiter_id: waiterId,
-            is_bar_account: Boolean(isBar),
+          const orderItems = (items || []).map((item) => ({
+            product_id: String(item.product.id),
+            quantity: item.quantity,
+            is_printed: !(unprintedItems || []).some(
+              (unprinted) => String(unprinted.product.id) === String(item.product.id),
+            ),
+          }));
+          const { error } = await supabase.rpc('save_table_order', {
+            p_table_id: sTableId,
+            p_expected_version: expectedVersion,
+            p_table: {
+              name: tableName || (isBar ? 'Barra' : `Mesa ${sTableId}`),
+              status: orderItems.length > 0 ? 'ocupada' : 'libre',
+              customer_name: customerName,
+              assigned_waiter_id: waiterId || '',
+              created_at: createdAt || new Date().toISOString(),
+              is_bar_account: Boolean(isBar),
+            },
+            p_items: orderItems,
           });
-
-          // Reemplazar pedidos
-          await supabase.from('orders').delete().eq('table_id', sTableId);
-          if (items && items.length > 0) {
-            const ordersToInsert = items.map(it => ({
-              table_id: sTableId,
-              product_id: String(it.product.id),
-              quantity: it.quantity,
-              is_printed: true,
-            }));
-            await supabase.from('orders').insert(ordersToInsert);
+          if (error) {
+            // Keep conflict entries in the queue for deliberate user review.
+            console.error('Conflicto/error sincronizando pedido offline:', error);
+            break;
           }
-
           success = true;
           break;
         }
