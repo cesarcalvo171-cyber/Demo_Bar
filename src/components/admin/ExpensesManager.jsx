@@ -19,10 +19,11 @@ export const ExpensesManager = () => {
 
   const filteredExpenses = expenses.filter(e => {
     const d = new Date(e.date);
-    return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+    return !isNaN(d.getTime()) && d.getMonth() === filterMonth && d.getFullYear() === filterYear;
   });
 
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const paidExpenses = filteredExpenses.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0);
   const pendingExpenses = filteredExpenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.amount, 0);
 
   const handleDelete = (id) => {
@@ -45,16 +46,20 @@ export const ExpensesManager = () => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-black text-yellow-500 font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Nuevo Gasto
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <p className="text-xs font-bold text-slate-500 uppercase">Total Gastos (Mes)</p>
           <h3 className="text-2xl font-black text-slate-900 m-0 mt-1">C${totalExpenses.toFixed(2)}</h3>
+        </div>
+        <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-200 shadow-sm">
+          <p className="text-xs font-bold text-emerald-700 uppercase">Gastos Pagados</p>
+          <h3 className="text-2xl font-black text-emerald-900 m-0 mt-1">C${paidExpenses.toFixed(2)}</h3>
         </div>
         <div className="bg-rose-50 p-5 rounded-xl border border-rose-200 shadow-sm">
           <p className="text-xs font-bold text-rose-700 uppercase">Pendientes de Pago</p>
@@ -199,34 +204,40 @@ export const ExpensesManager = () => {
             {({ isSubmitting, values, setFieldValue }) => (
               <Form className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-white mb-1">Descripción:</label>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
+                    Descripción:
+                  </label>
                   <Field
                     type="text"
                     name="description"
                     placeholder="Ej. Compra de 5 Cajas de Cerveza, Recibo de Luz..."
-                    className="w-full p-3 border text-white rounded-xl text-sm focus:ring-2 "
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 text-slate-900 rounded-xl text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all"
                   />
                   <ErrorMessage name="description" component="div" className="text-red-500 text-xs mt-1 font-semibold" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-bold text-white mb-1">Monto (C$):</label>
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
+                      Monto (C$):
+                    </label>
                     <Field
                       type="number"
                       step="0.01"
                       name="amount"
                       placeholder="0.00"
-                      className="w-full p-3 border border-slate-300 text-white rounded-xl text-sm font-bold focus:ring-2 "
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 text-slate-900 rounded-xl text-xs sm:text-sm font-bold placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all"
                     />
                     <ErrorMessage name="amount" component="div" className="text-red-500 text-xs mt-1 font-semibold" />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-white mb-1">Categoría:</label>
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
+                      Categoría:
+                    </label>
                     <Field
                       as="select"
                       name="category"
-                      className="w-full p-3 border text-white bg-slate-950 border-slate-300 rounded-xl text-sm focus:ring-2  "
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 text-slate-800 rounded-xl text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all cursor-pointer"
                       onChange={(e) => {
                         setFieldValue('category', e.target.value);
                         // Auto check isPaid to false for services usually
@@ -239,35 +250,46 @@ export const ExpensesManager = () => {
                       }}
                     >
                       {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.label}</option>
+                        <option key={c.id} value={c.id} className="text-slate-800 bg-white">{c.label}</option>
                       ))}
                     </Field>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-2">
-                  <Field type="checkbox" name="isPaid" id="isPaid" className="w-4 h-4 text-blue-600 rounded border-gray-300" />
-                  <label htmlFor="isPaid" className="text-sm font-semibold text-white cursor-pointer">
+                <div className="flex items-center gap-2.5 py-1 px-2 bg-slate-50 border border-slate-200 rounded-xl">
+                  <Field 
+                    type="checkbox" 
+                    name="isPaid" 
+                    id="isPaid" 
+                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
+                  />
+                  <label htmlFor="isPaid" className="text-xs sm:text-sm font-bold text-slate-700 cursor-pointer select-none">
                     Este gasto ya fue pagado
                   </label>
                 </div>
 
                 {values.category === 'servicios' && (
-                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="bg-blue-50/60 p-3.5 sm:p-4 rounded-xl border border-blue-200 space-y-3 mt-3 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-bold text-amber-900 cursor-pointer flex items-center gap-2">
-                        <Field type="checkbox" name="addNotification" className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500" />
+                      <label className="text-xs sm:text-sm font-bold text-blue-900 cursor-pointer flex items-center gap-2 select-none">
+                        <Field 
+                          type="checkbox" 
+                          name="addNotification" 
+                          className="w-4 h-4 rounded text-blue-600 border-blue-300 focus:ring-blue-500 cursor-pointer" 
+                        />
                         Agregar Notificación (Aviso 5 días antes)
                       </label>
                     </div>
                     
                     {values.addNotification && (
-                      <div className="animate-in fade-in">
-                        <label className="block text-xs font-bold text-amber-800 mb-1">Fecha límite / Fecha de aviso:</label>
+                      <div className="animate-in fade-in pt-1">
+                        <label className="block text-xs font-bold text-blue-800 mb-1.5">
+                          Fecha límite / Fecha de aviso:
+                        </label>
                         <Field
                           type="date"
                           name="notificationDate"
-                          className="w-full p-2.5 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
+                          className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-xs"
                         />
                         <ErrorMessage name="notificationDate" component="div" className="text-red-500 text-xs mt-1 font-semibold" />
                       </div>
@@ -275,18 +297,18 @@ export const ExpensesManager = () => {
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-4 mt-2">
+                <div className="flex gap-3 pt-3 border-t border-slate-100 mt-4">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm hover:bg-slate-300 transition-colors cursor-pointer"
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm transition-colors border border-slate-200 cursor-pointer shadow-xs"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 bg-black text-yellow-500 font-bold py-3 rounded-xl text-sm hover:bg-slate-800 transition-colors shadow-lg cursor-pointer"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/35 cursor-pointer disabled:opacity-50"
                   >
                     Guardar Gasto
                   </button>

@@ -385,10 +385,13 @@ export const BarProvider = ({ children }) => {
         setExpenses(
           expensesData.map((e) => ({
             id: e.id,
-            amount: Number(e.amount),
-            description: e.description,
-            category: e.category,
-            date: e.date,
+            shiftId: e.shift_id,
+            amount: Number(e.amount) || 0,
+            description: e.description || "",
+            category: e.category || "otros",
+            isPaid: e.is_paid !== false,
+            notificationDate: e.notification_date || null,
+            date: e.created_at || e.date || new Date().toISOString(),
           })),
         );
       }
@@ -401,6 +404,16 @@ export const BarProvider = ({ children }) => {
         users: usersData || [],
         paidInvoices: currentShiftInvoices,
         cashRegisterHistory: calculatedHistory,
+        expenses: expensesData ? expensesData.map(e => ({
+          id: e.id,
+          shiftId: e.shift_id,
+          amount: Number(e.amount) || 0,
+          description: e.description || "",
+          category: e.category || "otros",
+          isPaid: e.is_paid !== false,
+          notificationDate: e.notification_date || null,
+          date: e.created_at || e.date || new Date().toISOString(),
+        })) : [],
       });
 
     } catch (err) {
@@ -415,6 +428,7 @@ export const BarProvider = ({ children }) => {
           if (snapshot.users) setUsers(snapshot.users);
           if (snapshot.paidInvoices) setPaidInvoices(snapshot.paidInvoices);
           if (snapshot.cashRegisterHistory) setCashRegisterHistory(snapshot.cashRegisterHistory);
+          if (snapshot.expenses) setExpenses(snapshot.expenses);
         }
       }
     } finally {
@@ -474,6 +488,11 @@ export const BarProvider = ({ children }) => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "shifts" },
+        triggerSync,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expenses" },
         triggerSync,
       )
       .subscribe();
@@ -1317,33 +1336,48 @@ export const BarProvider = ({ children }) => {
   };
 
   const addExpense = async (newExpense) => {
-    await supabase.from("expenses").insert({
-      shift_id: currentShiftId,
-      description: newExpense.description,
-      category: newExpense.category,
-      amount: newExpense.amount,
-      is_paid: newExpense.isPaid,
-      notification_date: newExpense.notificationDate,
-    });
+    try {
+      const { error } = await supabase.from("expenses").insert({
+        shift_id: currentShiftId || null,
+        description: newExpense.description,
+        category: newExpense.category,
+        amount: Number(newExpense.amount),
+        is_paid: newExpense.isPaid !== false,
+        notification_date: newExpense.notificationDate || null,
+      });
+      if (error) console.error("Error al registrar gasto:", error);
+    } catch (err) {
+      console.error("Fallo al registrar gasto:", err);
+    }
     fetchData();
   };
 
   const updateExpense = async (updatedExpense) => {
-    await supabase
-      .from("expenses")
-      .update({
-        description: updatedExpense.description,
-        category: updatedExpense.category,
-        amount: updatedExpense.amount,
-        is_paid: updatedExpense.isPaid,
-        notification_date: updatedExpense.notificationDate,
-      })
-      .eq("id", updatedExpense.id);
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .update({
+          description: updatedExpense.description,
+          category: updatedExpense.category,
+          amount: Number(updatedExpense.amount),
+          is_paid: updatedExpense.isPaid,
+          notification_date: updatedExpense.notificationDate || null,
+        })
+        .eq("id", updatedExpense.id);
+      if (error) console.error("Error al actualizar gasto:", error);
+    } catch (err) {
+      console.error("Fallo al actualizar gasto:", err);
+    }
     fetchData();
   };
 
   const deleteExpense = async (expenseId) => {
-    await supabase.from("expenses").delete().eq("id", expenseId);
+    try {
+      const { error } = await supabase.from("expenses").delete().eq("id", expenseId);
+      if (error) console.error("Error al eliminar gasto:", error);
+    } catch (err) {
+      console.error("Fallo al eliminar gasto:", err);
+    }
     fetchData();
   };
 
