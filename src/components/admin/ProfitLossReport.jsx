@@ -34,7 +34,7 @@ export const ProfitLossReport = () => {
   // Filtrar gastos por mes y año
   const filteredExpenses = expenses.filter(e => {
     const d = new Date(e.date);
-    return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+    return !isNaN(d.getTime()) && d.getMonth() === filterMonth && d.getFullYear() === filterYear;
   });
 
   // 1. Ingresos Brutos (Ventas Totales)
@@ -60,12 +60,10 @@ export const ProfitLossReport = () => {
   // 3. Ganancia Bruta (Gross Profit)
   const grossProfit = totalRevenue - totalCOGS;
 
-  // 4. Gastos Operativos (Se EXCLUYE 'compras' porque eso es inventario, el gasto real está en el COGS)
-  const operationalExpenses = filteredExpenses.filter(e => e.category !== 'compras');
-  
-  const totalOpExpenses = operationalExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const expensesByCat = operationalExpenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + e.amount;
+  // 4. Gastos Registrados / Operativos
+  const totalOpExpenses = filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const expensesByCat = filteredExpenses.reduce((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + (Number(e.amount) || 0);
     return acc;
   }, {});
 
@@ -314,8 +312,14 @@ export const ProfitLossReport = () => {
             </div>
 
             <div className="pt-2">
-              <span className="text-xs font-bold text-slate-500 uppercase">Gastos Operativos</span>
+              <span className="text-xs font-bold text-slate-500 uppercase">Gastos Registrados / Operativos</span>
               <div className="pl-4 mt-2 space-y-2 text-sm text-amber-700">
+                {(expensesByCat['compras'] > 0 || (!expensesByCat['planilla'] && !expensesByCat['servicios'] && !expensesByCat['otros'])) && (
+                  <div className="flex justify-between items-center">
+                    <span>Compras / Mercadería</span>
+                    <span>- C${(expensesByCat['compras'] || 0).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
                   <span>Planilla / Trabajadores</span>
                   <span>- C${(expensesByCat['planilla'] || 0).toFixed(2)}</span>
