@@ -10,7 +10,18 @@ const SNAPSHOT_KEY = 'bar_offline_snapshot_v2';
 export const getOfflineQueue = () => {
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const queue = JSON.parse(raw);
+    // Purgar automáticamente items huérfanos o con más de 24 horas
+    const now = Date.now();
+    const valid = queue.filter(item => {
+      const age = now - new Date(item.createdAt || 0).getTime();
+      return age < 24 * 60 * 60 * 1000;
+    });
+    if (valid.length !== queue.length) {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(valid));
+    }
+    return valid;
   } catch (err) {
     console.error('Error al leer la cola offline:', err);
     return [];
@@ -186,8 +197,19 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
             p_items: orderItems,
           });
           if (error) {
-            // Keep conflict entries in the queue for deliberate user review.
             console.error('Conflicto/error sincronizando pedido offline:', error);
+            // Si es un conflicto de versión irrecuperable, descartar inmediatamente para evitar tormenta infinita
+            if (error.code === '40001' || String(error.message).includes('TABLE_ORDER_CONFLICT')) {
+              console.warn(`⚠️ Descartando pedido obsoleto [${item.id}] en mesa ${sTableId} por conflicto de versión.`);
+              removeOfflineAction(item.id);
+              break;
+            }
+            // Para otros errores temporales, contar intentos y descartar si supera 3
+            item.attempts = (item.attempts || 0) + 1;
+            if (item.attempts >= 3) {
+              console.warn(`⚠️ Descartando acción [${item.id}] tras 3 intentos fallidos.`);
+              removeOfflineAction(item.id);
+            }
             break;
           }
           success = true;

@@ -440,8 +440,12 @@ export const BarProvider = ({ children }) => {
   useEffect(() => {
     fetchData();
 
+    let syncDebounceTimer = null;
     const triggerSync = () => {
-      fetchData(true);
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(() => {
+        fetchData(true);
+      }, 500);
     };
 
     const handleOnline = async () => {
@@ -459,8 +463,15 @@ export const BarProvider = ({ children }) => {
       console.log("📵 Conexión perdida. Operando en modo Offline.");
     };
 
+    const handleFocus = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        triggerSync();
+      }
+    };
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("focus", handleFocus);
 
     // 1. Supabase Realtime Channels
     const channel = supabase
@@ -497,17 +508,11 @@ export const BarProvider = ({ children }) => {
       )
       .subscribe();
 
-    // 2. Background sync fallback cada 8 segundos
-    const syncInterval = setInterval(() => {
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
-        fetchData(true);
-      }
-    }, 8000);
-
     return () => {
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      clearInterval(syncInterval);
+      window.removeEventListener("focus", handleFocus);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -579,17 +584,24 @@ export const BarProvider = ({ children }) => {
             : table,
         ));
       } catch (dbErr) {
+        // En cualquier caso de error, cancelar cualquier debounce pendiente para esta mesa
+        if (updateOrderDebounceTimersRef.current.has(sTableId)) {
+          clearTimeout(updateOrderDebounceTimersRef.current.get(sTableId));
+          updateOrderDebounceTimersRef.current.delete(sTableId);
+        }
+
         if (dbErr?.code === "40001" || String(dbErr?.message).includes("TABLE_ORDER_CONFLICT")) {
-          // Another device saved this table first. Never merge quantities automatically.
+          // Another device saved this table first. Discard stale pending write to prevent retry loop.
           pendingSyncTablesRef.current.delete(sTableId);
+          latestPendingWriteRef.current.delete(sTableId);
           console.warn("Conflicto de versión en mesa", sTableId);
-          window.alert("Esta cuenta fue modificada desde otro dispositivo. Se cargará la versión más reciente antes de continuar.");
+          window.alert("Esta cuenta fue modificada desde otro dispositivo o reiniciada. Se cargará la versión más reciente antes de continuar.");
           fetchData(true);
           return;
         }
 
-        if (!navigator.onLine || String(dbErr?.message).includes("Failed to fetch")) {
-          console.warn("Database sync error (encolando offline):", dbErr.message || dbErr);
+        if (!navigator.onLine) {
+          console.warn("Sin conexión a internet (encolando offline):", dbErr.message || dbErr);
           enqueueOfflineAction("UPDATE_ORDER", {
             tableId: sTableId,
             tableName: effectiveName,
@@ -607,6 +619,7 @@ export const BarProvider = ({ children }) => {
 
         // A server/configuration error must be visible; queuing it would replay an unsafe write forever.
         pendingSyncTablesRef.current.delete(sTableId);
+        latestPendingWriteRef.current.delete(sTableId);
         console.error("No se pudo guardar el pedido de forma segura:", dbErr);
         fetchData(true);
       }
