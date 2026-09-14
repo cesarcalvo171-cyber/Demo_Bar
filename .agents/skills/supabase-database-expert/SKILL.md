@@ -1,4 +1,4 @@
-﻿---
+---
 name: supabase-database-expert
 description: Guía y referencia exhaustiva para interactuar y administrar la base de datos Supabase de Monchos_Bars (Zorix POS). Documenta el esquema de PostgreSQL, tablas, relaciones foráneas, 11 índices B-Tree, función RPC transaccional save_table_order, configuración de timeouts de conexión, buenas prácticas de PostgREST y protocolos de infraestructura.
 ---
@@ -11,13 +11,13 @@ Esta skill define el rol de asistente especializado en la base de datos PostgreS
 
 ## 1. Información General del Proyecto y Entorno
 
-* **Project ID:** `cmqpulttacvxzeipsnot`
-* **Nombre:** `Monchos_Bars`
+* **Project ID:** `lbdrmastjmxlaqaxpqcv`
+* **Nombre:** `Moncho` (antes `Monchos_Bars`)
 * **Región:** `us-east-1` (North Virginia)
 * **Instancia:** `t3.nano` (Plan Free de Supabase / AWS)
 * **Motor de Base de Datos:** PostgreSQL 15+ administrado por Supabase
 * **Protocolos de Acceso:** 
-  * API REST / PostgREST (`https://cmqpulttacvxzeipsnot.supabase.co/rest/v1/`)
+  * API REST / PostgREST (`https://lbdrmastjmxlaqaxpqcv.supabase.co/rest/v1/`)
   * SDK JavaScript / TypeScript (`@supabase/supabase-js`)
   * Conexión directa / Pooler (Puerto 5432 / 6543)
 * **Variables de Entorno Clave:**
