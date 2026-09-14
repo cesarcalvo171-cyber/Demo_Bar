@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBar } from '../../context/BarContext';
 import { DollarSign, Receipt, ShoppingCart, Archive, Users, DollarSign as DollarIcon, RefreshCcw, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const AdminDashboard = () => {
-  const { paidInvoices, products, cashRegisterHistory, users, exchangeRate, updateExchangeRate } = useBar();
+  const { paidInvoices, products, cashRegisterHistory, users, exchangeRate, updateExchangeRate, isHistoryLoading, loadShiftHistory } = useBar();
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    loadShiftHistory();
+  }, [loadShiftHistory]);
 
   // Cálculo histórico total (cierres pasados + turno actual)
   const pastInvoices = cashRegisterHistory.flatMap(c => c.invoices || []);
@@ -62,14 +66,26 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="text-yellow-500 p-3">
-            <DollarSign className="w-6 h-6 text-yellow-500" />
+        <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="text-yellow-500 p-3">
+              <DollarSign className="w-6 h-6 text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Ventas Históricas</p>
+              <h3 className="text-xl font-extrabold text-white m-0">
+                {isHistoryLoading && cashRegisterHistory.length === 0 ? 'Cargando...' : `C$${totalHistoricalSales.toFixed(2)}`}
+              </h3>
+            </div>
           </div>
-          <div>
-            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Ventas Históricas</p>
-            <h3 className="text-xl font-extrabold text-white m-0">C${totalHistoricalSales.toFixed(2)}</h3>
-          </div>
+          <button
+            onClick={() => loadShiftHistory(true)}
+            disabled={isHistoryLoading}
+            className="p-2 text-slate-400 hover:text-yellow-400 transition-colors disabled:opacity-50 cursor-pointer"
+            title="Recargar historial"
+          >
+            <RefreshCcw className={`w-4 h-4 ${isHistoryLoading ? 'animate-spin text-yellow-400' : ''}`} />
+          </button>
         </div>
 
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">

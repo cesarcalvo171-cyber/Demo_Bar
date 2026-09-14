@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBar } from '../../context/BarContext';
-import { Search, Calendar, FileText, CreditCard, DollarSign, ChevronDown, ChevronUp, Archive } from 'lucide-react';
+import { Search, Calendar, FileText, CreditCard, DollarSign, ChevronDown, ChevronUp, Archive, RefreshCw } from 'lucide-react';
 
 export const InvoiceHistory = () => {
-  const { cashRegisterHistory } = useBar();
+  const { cashRegisterHistory, isHistoryLoading, loadShiftHistory } = useBar();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedClosureId, setExpandedClosureId] = useState(null);
   const [expandedInvoiceId, setExpandedInvoiceId] = useState(null);
+
+  useEffect(() => {
+    loadShiftHistory();
+  }, [loadShiftHistory]);
 
   const filteredHistory = cashRegisterHistory.filter(closure => 
     closure.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -30,22 +34,38 @@ export const InvoiceHistory = () => {
           </p>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-slate-400" />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Buscar cierre, factura..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <input
-            type="text"
-            className="block w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            placeholder="Buscar cierre, factura..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <button
+            onClick={() => loadShiftHistory(true)}
+            disabled={isHistoryLoading}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+            title="Recargar historial"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isHistoryLoading ? 'animate-spin text-blue-600' : ''}`} />
+            {isHistoryLoading ? 'Cargando...' : 'Actualizar'}
+          </button>
         </div>
       </div>
 
       <div className="space-y-4">
-        {filteredHistory.length === 0 ? (
+        {isHistoryLoading && cashRegisterHistory.length === 0 ? (
+          <div className="bg-white p-12 rounded-xl border border-slate-200 text-center flex flex-col items-center">
+            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+            <p className="text-sm font-bold text-slate-700 m-0">Cargando cierres de caja bajo demanda...</p>
+          </div>
+        ) : filteredHistory.length === 0 ? (
           <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
             No se encontraron cierres de caja en el historial.
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBar } from '../../context/BarContext';
 import { INITIAL_PRODUCTS } from '../../mock/initialData';
 import { 
@@ -12,14 +12,19 @@ import {
   Layers, 
   Package, 
   UtensilsCrossed, 
-  Clock 
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 
 export const ProfitLossReport = () => {
-  const { paidInvoices, cashRegisterHistory, expenses, products, categories, tables } = useBar();
+  const { paidInvoices, cashRegisterHistory, expenses, products, categories, tables, isHistoryLoading, loadShiftHistory } = useBar();
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [showLiveModal, setShowLiveModal] = useState(false);
+
+  useEffect(() => {
+    loadShiftHistory();
+  }, [loadShiftHistory]);
 
   // Consolidar todas las facturas (cierres pasados + facturas actuales)
   const pastInvoices = cashRegisterHistory.flatMap(c => c.invoices || []);
@@ -247,6 +252,14 @@ export const ProfitLossReport = () => {
           >
             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          <button
+            onClick={() => loadShiftHistory(true)}
+            disabled={isHistoryLoading}
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
+            title="Recargar datos históricos"
+          >
+            <RefreshCw className={`w-4 h-4 ${isHistoryLoading ? 'animate-spin text-blue-600' : ''}`} />
+          </button>
         </div>
       </div>
 

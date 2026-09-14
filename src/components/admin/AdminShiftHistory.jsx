@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBar } from '../../context/BarContext';
-import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers, TrendingUp, Eye, X } from 'lucide-react';
+import { Calendar, DollarSign, Archive, ChevronDown, ChevronUp, Receipt, Printer, Package, Layers, TrendingUp, Eye, X, RefreshCw } from 'lucide-react';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 
 import { INITIAL_PRODUCTS } from '../../mock/initialData';
 
 export const AdminShiftHistory = () => {
-  const { cashRegisterHistory, products, categories } = useBar();
+  const { cashRegisterHistory, products, categories, isHistoryLoading, loadShiftHistory } = useBar();
   const [expandedShift, setExpandedShift] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  useEffect(() => {
+    loadShiftHistory();
+  }, [loadShiftHistory]);
 
   // Funciones de utilidad para fechas
   const getMonthYear = (isoString) => {
@@ -235,9 +239,38 @@ export const AdminShiftHistory = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 font-sans">
       
-      {/* Dashboard Superior */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-        {/* Ventas del Día */}
+      {/* Barra de Título y Refresco */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div>
+          <h2 className="text-lg font-black text-slate-800 m-0 flex items-center gap-2">
+            <Archive className="w-5 h-5 text-blue-600" />
+            Historial de Cierres de Turno
+          </h2>
+          <p className="text-xs text-slate-500 m-0 mt-0.5">
+            Cortes de caja y métricas consolidadas por turno.
+          </p>
+        </div>
+        <button
+          onClick={() => loadShiftHistory(true)}
+          disabled={isHistoryLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isHistoryLoading ? 'animate-spin text-blue-600' : ''}`} />
+          {isHistoryLoading ? 'Cargando...' : 'Actualizar'}
+        </button>
+      </div>
+
+      {isHistoryLoading && cashRegisterHistory.length === 0 ? (
+        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center flex flex-col items-center">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-3" />
+          <p className="text-sm font-bold text-slate-700 m-0">Cargando historial de turnos bajo demanda...</p>
+          <p className="text-xs text-slate-400 mt-1">Conectando a Supabase sin sobrecargar el servidor</p>
+        </div>
+      ) : (
+        <>
+          {/* Dashboard Superior */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {/* Ventas del Día */}
         <div className="bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-700 shadow-lg flex flex-col justify-center">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-emerald-500/20 p-2 rounded-lg text-emerald-400">
@@ -505,6 +538,8 @@ export const AdminShiftHistory = () => {
           ))
         )}
       </div>
+        </>
+      )}
 
       {/* Modal de Detalle de Factura */}
       {selectedInvoice && (

@@ -40,6 +40,10 @@ export const BarProvider = ({ children }) => {
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [shiftStartTime, setShiftStartTime] = useState(null);
 
+  // Estados para Carga de Historial Bajo Demanda (Admin / Reportes)
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
   // Estados de Conexión y Cola Offline
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
   const [pendingSyncCount, setPendingSyncCount] = useState(() => getOfflineQueue().length);
@@ -289,14 +293,44 @@ export const BarProvider = ({ children }) => {
         }
       }
 
-      // Fetch Invoices
-      const { data: invData } = await supabase.from("invoices").select("*");
-      const { data: invItemsData } = await supabase.from("invoice_items").select("*");
+      // 1. Fetch Active Shift (1 sola fila para el turno actual)
+      const { data: activeShiftsData } = await supabase
+        .from("shifts")
+        .select("*")
+        .is("closed_at", null)
+        .order("opened_at", { ascending: false })
+        .limit(1);
+
       if (mySeq !== fetchSeqRef.current) return;
 
-      let allInvoices = [];
-      if (invData) {
-        allInvoices = invData.map((inv) => ({
+      const activeShift = activeShiftsData && activeShiftsData.length > 0 ? activeShiftsData[0] : null;
+
+      // 2. Fetch Invoices únicamente del turno activo
+      currentShiftInvoices = [];
+      if (activeShift) {
+        setCurrentShiftId(activeShift.id);
+        setShiftStartTime(activeShift.opened_at);
+
+        const { data: invData } = await supabase
+          .from("invoices")
+          .select("*")
+          .eq("shift_id", activeShift.id);
+
+        if (mySeq !== fetchSeqRef.current) return;
+
+        let activeShiftItems = [];
+        if (invData && invData.length > 0) {
+          const invIds = invData.map((inv) => inv.id);
+          const { data: invItemsData } = await supabase
+            .from("invoice_items")
+            .select("*")
+            .in("invoice_id", invIds);
+
+          if (mySeq !== fetchSeqRef.current) return;
+          activeShiftItems = invItemsData || [];
+        }
+
+        currentShiftInvoices = (invData || []).map((inv) => ({
           id: inv.id,
           shiftId: inv.shift_id,
           tableName: inv.table_name,
@@ -310,75 +344,32 @@ export const BarProvider = ({ children }) => {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          items:
-            invItemsData
-              ?.filter((it) => it.invoice_id === inv.id)
-              .map((it) => ({
-                name: it.product_name,
-                quantity: it.quantity,
-                price: Number(it.price_at_sale),
-                cost: Number(it.cost_at_sale || 0),
-              })) || [],
+          items: activeShiftItems
+            .filter((it) => it.invoice_id === inv.id)
+            .map((it) => ({
+              name: it.product_name,
+              quantity: it.quantity,
+              price: Number(it.price_at_sale),
+              cost: Number(it.cost_at_sale || 0),
+            })),
         }));
+
+        setPaidInvoices(currentShiftInvoices);
+      } else {
+        setCurrentShiftId(null);
+        setShiftStartTime(null);
+        setPaidInvoices([]);
       }
 
-      // Fetch Shifts
-      const { data: shiftsData } = await supabase.from("shifts").select("*");
-      if (mySeq !== fetchSeqRef.current) return;
-
-      if (shiftsData) {
-        const activeShift = shiftsData.find((s) => s.closed_at === null);
-        if (activeShift) {
-          setCurrentShiftId(activeShift.id);
-          setShiftStartTime(activeShift.opened_at);
-          currentShiftInvoices = allInvoices.filter(
-            (inv) => inv.shiftId === activeShift.id,
-          );
-          setPaidInvoices(currentShiftInvoices);
-        } else {
-          setCurrentShiftId(null);
-          setPaidInvoices([]);
-        }
-
-        const closedShifts = shiftsData.filter((s) => s.closed_at !== null);
-        calculatedHistory = closedShifts.map((shift) => {
-          const shiftInvoices = allInvoices.filter(
-            (inv) => inv.shiftId === shift.id,
-          );
-          const totalSales = shiftInvoices.reduce(
-            (sum, inv) => sum + inv.total,
-            0,
-          );
-          const totalCash = shiftInvoices
-            .filter((inv) => inv.paymentMethod === "Efectivo")
-            .reduce((sum, inv) => sum + inv.total, 0);
-          const totalCard = shiftInvoices
-            .filter((inv) => inv.paymentMethod !== "Efectivo")
-            .reduce((sum, inv) => sum + inv.total, 0);
-
-          const cashier = usersData?.find((u) => u.id === shift.opened_by);
-
-          return {
-            id: shift.id,
-            startTime: shift.opened_at,
-            endTime: shift.closed_at,
-            totalSales,
-            totalCash,
-            totalCard,
-            cashierName: cashier ? cashier.name : "Cajero",
-            invoices: shiftInvoices,
-          };
-        });
-
-        setCashRegisterHistory(
-          calculatedHistory.sort(
-            (a, b) => new Date(b.endTime) - new Date(a.endTime),
-          ),
-        );
+      // 3. Fetch Expenses acotados (solo del turno activo, o últimas 24h si no hay turno)
+      let expensesQuery = supabase.from("expenses").select("*");
+      if (activeShift) {
+        expensesQuery = expensesQuery.eq("shift_id", activeShift.id);
+      } else {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        expensesQuery = expensesQuery.gte("created_at", since24h);
       }
-
-      // Fetch Expenses
-      const { data: expensesData } = await supabase.from("expenses").select("*");
+      const { data: expensesData } = await expensesQuery;
       if (mySeq !== fetchSeqRef.current) return;
 
       if (expensesData) {
@@ -403,7 +394,7 @@ export const BarProvider = ({ children }) => {
         categories: categoriesData || CATEGORIES,
         users: usersData || [],
         paidInvoices: currentShiftInvoices,
-        cashRegisterHistory: calculatedHistory,
+        cashRegisterHistory: cashRegisterHistory,
         expenses: expensesData ? expensesData.map(e => ({
           id: e.id,
           shiftId: e.shift_id,
@@ -516,6 +507,150 @@ export const BarProvider = ({ children }) => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Carga de Historial de Turnos, Facturas y Gastos Bajo Demanda (Admin / Reportes)
+  const loadShiftHistory = useCallback(async (force = false) => {
+    if (historyLoaded && !force) return;
+    setIsHistoryLoading(true);
+
+    try {
+      // 1. Obtener los turnos cerrados (últimos 60)
+      const { data: closedShifts, error: shiftsErr } = await supabase
+        .from("shifts")
+        .select("*")
+        .not("closed_at", "is", null)
+        .order("closed_at", { ascending: false })
+        .limit(60);
+
+      if (shiftsErr) throw shiftsErr;
+
+      if (!closedShifts || closedShifts.length === 0) {
+        setCashRegisterHistory([]);
+        setHistoryLoaded(true);
+        return;
+      }
+
+      const closedShiftIds = closedShifts.map((s) => s.id);
+
+      // 2. Traer facturas de esos turnos específicos
+      const { data: histInvoices, error: invErr } = await supabase
+        .from("invoices")
+        .select("*")
+        .in("shift_id", closedShiftIds);
+
+      if (invErr) throw invErr;
+
+      let histInvItems = [];
+      if (histInvoices && histInvoices.length > 0) {
+        const histInvIds = histInvoices.map((i) => i.id);
+        const CHUNK_SIZE = 80;
+        for (let i = 0; i < histInvIds.length; i += CHUNK_SIZE) {
+          const chunk = histInvIds.slice(i, i + CHUNK_SIZE);
+          const { data: itemsChunk } = await supabase
+            .from("invoice_items")
+            .select("*")
+            .in("invoice_id", chunk);
+          if (itemsChunk) {
+            histInvItems.push(...itemsChunk);
+          }
+        }
+      }
+
+      // 3. Traer gastos históricos correspondientes a esos turnos
+      const { data: histExpenses } = await supabase
+        .from("expenses")
+        .select("*")
+        .in("shift_id", closedShiftIds);
+
+      if (histExpenses && histExpenses.length > 0) {
+        setExpenses((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id));
+          const newFormatted = histExpenses
+            .filter((e) => !existingIds.has(e.id))
+            .map((e) => ({
+              id: e.id,
+              shiftId: e.shift_id,
+              amount: Number(e.amount) || 0,
+              description: e.description || "",
+              category: e.category || "otros",
+              isPaid: e.is_paid !== false,
+              notificationDate: e.notification_date || null,
+              date: e.created_at || e.date || new Date().toISOString(),
+            }));
+          return [...prev, ...newFormatted];
+        });
+      }
+
+      // 4. Mapear facturas con sus productos vendidos
+      const mappedInvoices = (histInvoices || []).map((inv) => ({
+        id: inv.id,
+        shiftId: inv.shift_id,
+        tableName: inv.table_name,
+        customerName: inv.customer_name,
+        waiterName: inv.waiter_name,
+        total: Number(inv.total),
+        paymentMethod: inv.payment_method,
+        transactionId: inv.transaction_id,
+        fullDate: inv.created_at,
+        date: new Date(inv.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        items: histInvItems
+          .filter((it) => it.invoice_id === inv.id)
+          .map((it) => ({
+            name: it.product_name,
+            quantity: it.quantity,
+            price: Number(it.price_at_sale),
+            cost: Number(it.cost_at_sale || 0),
+          })),
+      }));
+
+      // 5. Construir historial de cortes estructurado
+      const calculatedHistory = closedShifts.map((shift) => {
+        const shiftInvoices = mappedInvoices.filter((inv) => inv.shiftId === shift.id);
+        const totalSales = shift.total_real !== null && shift.total_real !== undefined
+          ? Number(shift.total_real)
+          : shiftInvoices.reduce((sum, inv) => sum + inv.total, 0);
+        const totalCash = shiftInvoices
+          .filter((inv) => inv.paymentMethod === "Efectivo")
+          .reduce((sum, inv) => sum + inv.total, 0);
+        const totalCard = shiftInvoices
+          .filter((inv) => inv.paymentMethod !== "Efectivo")
+          .reduce((sum, inv) => sum + inv.total, 0);
+
+        const cashier = users.find((u) => u.id === shift.opened_by);
+
+        return {
+          id: shift.id,
+          startTime: shift.opened_at,
+          endTime: shift.closed_at,
+          openTime: shift.opened_at,
+          closeTime: shift.closed_at,
+          totalSales,
+          totalCash,
+          totalCard,
+          cashierName: cashier ? cashier.name : "Cajero",
+          invoices: shiftInvoices,
+        };
+      });
+
+      calculatedHistory.sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+      setCashRegisterHistory(calculatedHistory);
+      setHistoryLoaded(true);
+    } catch (err) {
+      console.error("Error al cargar historial bajo demanda:", err);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [historyLoaded, users]);
+
+  // Si el usuario cambia o inicia con rol Admin, cargar historial si no está cargado
+  useEffect(() => {
+    if (currentRole === "admin" && !historyLoaded && !isHistoryLoading) {
+      loadShiftHistory();
+    }
+  }, [currentRole, historyLoaded, isHistoryLoading, loadShiftHistory]);
 
   // Función serializada que ejecuta la escritura a Supabase de forma atómica y ordenada
   const performTableWrite = async (sTableId) => {
@@ -1175,6 +1310,7 @@ export const BarProvider = ({ children }) => {
       }
 
       setPaidInvoices([]);
+      setHistoryLoaded(false); // Invalida el caché para que al ver historial incluya el nuevo corte
       fetchData(true);
     } catch (closeErr) {
       console.error("Error al cerrar turno:", closeErr);
@@ -1475,6 +1611,9 @@ export const BarProvider = ({ children }) => {
         paidInvoices,
         shiftStartTime,
         cashRegisterHistory,
+        isHistoryLoading,
+        historyLoaded,
+        loadShiftHistory,
         exchangeRate,
         expenses,
         isOnline,
